@@ -43,9 +43,11 @@ def parse_query(nlp_model: spacy.Language, text: str) -> dict:
     main_object = kw_result["main_keyword"]
     
     # Ensure the main object is not mistakenly an attribute (like "left", which spaCy might tag as a noun)
-    if main_object in POSITIONS or main_object in COLORS or main_object in SIZES:
+    # Also ignore generic attribute property names ("color", "size", "position")
+    ignore_as_object = POSITIONS | COLORS | SIZES | {"color", "size", "position", "shape"}
+    if main_object in ignore_as_object:
         for kw in reversed(keywords):
-            if kw not in POSITIONS and kw not in COLORS and kw not in SIZES:
+            if kw not in ignore_as_object:
                 main_object = kw
                 break
     

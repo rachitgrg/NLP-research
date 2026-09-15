@@ -61,22 +61,28 @@ module-1/
 │   └── hearing_pipeline.py    # Wires speech + NLP together into one call
 │
 ├── evaluation/
-│   ├── evaluate.py            # Benchmarks Whisper Tiny vs Sarvam AI on 10 WAV samples
+│   ├── evaluate.py            # (Legacy) 2-model benchmark
+│   ├── evaluate_models.py     # Benchmarks Whisper Tiny, Whisper Base, and Sarvam AI
 │   ├── record_samples.py      # Records the 10 benchmark WAV files from the microphone
-│   ├── metrics.py             # WER, CER, and accuracy computation helpers
-│   ├── graph.py               # Generates the comparison bar chart PNG
+│   ├── metrics.py             # WER, CER, Exact Match, and accuracy computation helpers
+│   ├── graph.py               # (Legacy) graph generation
+│   ├── plot_results.py        # Generates the 4-panel comparison bar chart PNG
+│   ├── semantic_eval.py       # Evaluates semantic extraction accuracy
+│   ├── semantic_gold.csv      # Gold standard semantics for evaluation
 │   ├── whisper_adapter.py     # Wraps faster-whisper with the same interface as Sarvam
 │   ├── references.csv         # Expected English text for each of the 10 samples
 │   ├── results.csv            # Results from the last evaluation run
-│   ├── comparison_graph.png   # Bar chart from the last evaluation run
+│   ├── comparison_graph_v2.png # 4-panel bar chart from the last evaluation run
 │   └── audio/                 # The 10 recorded WAV benchmark samples
 │
 ├── tests/
 │   ├── test_keywords.py           # Unit tests for keyword extraction
 │   ├── test_query_parser.py       # Unit tests for query parsing
+│   ├── test_query_parser_extended.py # Extended edge case tests for query parsing
 │   ├── test_sarvam_stt.py         # Unit tests for the Sarvam STT wrapper (mocked)
 │   ├── test_evaluation_metrics.py # Unit tests for WER/CER/accuracy helpers
-│   └── test_evaluation_graph.py   # Unit tests for the graph generator
+│   ├── test_evaluation_graph.py   # Unit tests for the graph generator
+│   └── test_semantic_eval.py      # Unit tests for semantic evaluation
 │
 ├── conftest.py                # pytest config (adds module root to sys.path)
 ├── main.py                    # Entry point — run the interactive voice pipeline
@@ -165,7 +171,7 @@ Press `q` then **Enter** to quit.
 
 ## Running the Evaluation
 
-The evaluation benchmarks **Whisper Tiny** (local, CPU) vs **Sarvam AI** (cloud) on 10 pre-recorded English sentences.
+The evaluation benchmarks **Sarvam AI** (cloud), **Whisper Tiny** (local), and **Whisper Base** (local) on 10 pre-recorded English sentences.
 
 ```bash
 # From the module-1/ directory:
@@ -174,16 +180,23 @@ The evaluation benchmarks **Whisper Tiny** (local, CPU) vs **Sarvam AI** (cloud)
 python evaluation/record_samples.py
 
 # Step 2: Run the benchmark
-python evaluation/evaluate.py
+python evaluation/evaluate_models.py
+
+# Step 3: Generate the comparison graph
+python evaluation/plot_results.py
+
+# Step 4: Evaluate semantic accuracy
+python evaluation/semantic_eval.py
 ```
 
-Results are saved to `evaluation/results.csv` and `evaluation/comparison_graph.png`.
+Results are saved to `evaluation/results.csv` and `evaluation/comparison_graph_v2.png`.
 
 ---
 
 ## Running Tests
 
 All tests use mocking — no microphone, no API key, and no audio files are needed (except the pre-recorded WAV samples in `evaluation/audio/`).
+There are a total of 77 pytest cases covering the pipeline, NLP parser, and evaluation modules.
 
 ```bash
 # Run all tests from inside module-1/

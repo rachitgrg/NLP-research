@@ -1,0 +1,11 @@
+audio_file,expected_english,intent,object,color,size,position
+sample_01.wav,Where is my black bottle?,find_object,bottle,black,,
+sample_02.wav,Where is my phone?,find_object,phone,,,
+sample_03.wav,What is the color of this bag?,describe_object,bag,,,
+sample_04.wav,Is there a laptop in front of me?,unknown,laptop,,,front
+sample_05.wav,Please identify this object.,identify_object,object,,,
+sample_06.wav,Where is the red bag?,find_object,bag,red,,
+sample_07.wav,Can you find my bottle?,find_object,bottle,,,
+sample_08.wav,Where is the blue book?,find_object,book,blue,,
+sample_09.wav,Is my phone on the table?,unknown,phone,,,
+sample_10.wav,Where is the laptop?,find_object,laptop,,,

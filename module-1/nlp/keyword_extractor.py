@@ -105,14 +105,28 @@ def extract_keywords(nlp_model: spacy.Language, text: str) -> dict:
             seen.add(word)
             keywords.append(word)
 
-    # The "main keyword" is the last pure noun in the sentence.
-    # "Where is my black bottle?" → "bottle" (the object being searched for).
+    # The "main keyword" (the object being searched for) is normally the target noun.
+    # To avoid the "last noun" bug (e.g. "phone on the table" -> table), we prefer 
+    # nouns that are syntactic subjects or direct objects.
     main_keyword = None
-    for i in sorted(noun_indices, reverse=True):
-        candidate = tokens[i].text.lower()
-        if candidate in seen:
-            main_keyword = candidate
-            break
+    preferred_deps = {"nsubj", "nsubjpass", "dobj", "ROOT"}
+    
+    # Try to find a preferred noun
+    for i in sorted(noun_indices):
+        tok = tokens[i]
+        if tok.dep_ in preferred_deps:
+            candidate = tok.text.lower()
+            if candidate in seen:
+                main_keyword = candidate
+                break
+                
+    # Fallback to the last pure noun if no preferred dependency found
+    if not main_keyword:
+        for i in sorted(noun_indices, reverse=True):
+            candidate = tokens[i].text.lower()
+            if candidate in seen:
+                main_keyword = candidate
+                break
 
     return {
         "keywords": keywords,

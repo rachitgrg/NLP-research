@@ -1,11 +1,11 @@
-audio_file,expected_english,whisper_output,sarvam_output,whisper_wer,sarvam_wer,whisper_accuracy,sarvam_accuracy
-sample_01.wav,Where is the railway station?,,,1.0000,1.0000,0.00,0.00
-sample_02.wav,Today is a very good day.,,,1.0000,1.0000,0.00,0.00
-sample_03.wav,What are you doing?,,,1.0000,1.0000,0.00,0.00
-sample_04.wav,I am very hungry.,,,1.0000,1.0000,0.00,0.00
-sample_05.wav,I will come tomorrow.,,,1.0000,1.0000,0.00,0.00
-sample_06.wav,How are you?,,,1.0000,1.0000,0.00,0.00
-sample_07.wav,Where is my red pen and black bottle?,,,1.0000,1.0000,0.00,0.00
-sample_08.wav,Can you find my glasses?,,,1.0000,1.0000,0.00,0.00
-sample_09.wav,Nice to meet you.,,,1.0000,1.0000,0.00,0.00
-sample_10.wav,Thankyou very much.,,,1.0000,1.0000,0.00,0.00
+sample_id,reference,audio_duration_seconds,sarvam_text,sarvam_wer,sarvam_cer,sarvam_exact_match,sarvam_latency_seconds,whisper_tiny_text,whisper_tiny_wer,whisper_tiny_cer,whisper_tiny_exact_match,whisper_tiny_latency_seconds,whisper_base_text,whisper_base_wer,whisper_base_cer,whisper_base_exact_match,whisper_base_latency_seconds
+sample_01.wav,Where is my black bottle?,5.00,,1.0000,1.0000,False,1.0645,,1.0000,1.0000,False,0.5622,,1.0000,1.0000,False,0.4155
+sample_02.wav,Where is my phone?,5.00,,1.0000,1.0000,False,0.3868,,1.0000,1.0000,False,0.2089,,1.0000,1.0000,False,0.3880
+sample_03.wav,What is the color of this bag?,5.00,,1.0000,1.0000,False,0.3372,,1.0000,1.0000,False,0.2169,,1.0000,1.0000,False,0.3942
+sample_04.wav,Is there a laptop in front of me?,5.00,,1.0000,1.0000,False,0.3755,,1.0000,1.0000,False,0.2170,,1.0000,1.0000,False,0.3832
+sample_05.wav,Please identify this object.,5.00,,1.0000,1.0000,False,0.5169,,1.0000,1.0000,False,0.2099,,1.0000,1.0000,False,0.3813
+sample_06.wav,Where is the red bag?,5.00,,1.0000,1.0000,False,0.3740,,1.0000,1.0000,False,0.2263,,1.0000,1.0000,False,0.4022
+sample_07.wav,Can you find my bottle?,5.00,,1.0000,1.0000,False,0.3157,,1.0000,1.0000,False,0.2083,,1.0000,1.0000,False,0.3854
+sample_08.wav,Where is the blue book?,5.00,,1.0000,1.0000,False,0.5953,,1.0000,1.0000,False,0.2462,,1.0000,1.0000,False,0.4017
+sample_09.wav,Is my phone on the table?,5.00,,1.0000,1.0000,False,0.3970,,1.0000,1.0000,False,0.2058,,1.0000,1.0000,False,0.4020
+sample_10.wav,Where is the laptop?,5.00,,1.0000,1.0000,False,0.3653,,1.0000,1.0000,False,0.2153,,1.0000,1.0000,False,0.3887

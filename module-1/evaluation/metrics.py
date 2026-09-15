@@ -123,14 +123,39 @@ def compute_cer(reference: str, hypothesis: str) -> float:
     return float(jiwer.cer(ref_norm, hyp_norm))
 
 
+def compute_exact_match(reference: str, hypothesis: str) -> bool:
+    """
+    Compute whether the hypothesis perfectly matches the reference after normalisation.
+    
+    Both strings are normalised with :func:`normalize_text` before scoring.
+    
+    Args:
+        reference: Ground-truth transcript.
+        hypothesis: Model output to evaluate.
+        
+    Returns:
+        True if the normalised strings are identical, False otherwise.
+    """
+    ref_norm = normalize_text(reference)
+    hyp_norm = normalize_text(hypothesis)
+    
+    if not ref_norm:
+        raise ValueError(f"Reference text is empty after normalisation: {reference!r}")
+        
+    return ref_norm == hyp_norm
+
+
 def compute_accuracy(wer: float) -> float:
     """
-    Convert a WER value to a percentage accuracy score.
+    [DEPRECATED FOR RESEARCH] Convert a WER value to a percentage accuracy score.
+    
+    NOTE: In Stage 1 research evaluation, this metric is deprecated in favour of
+    reporting WER, CER, and Exact Match directly.
 
     accuracy = max(0.0, (1.0 - wer) * 100.0)
 
     A WER of 0.0 gives 100 % accuracy.
-    A WER ≥ 1.0 is clamped to 0 % accuracy (never negative).
+    A WER >= 1.0 is clamped to 0 % accuracy (never negative).
 
     Args:
         wer: Word Error Rate as returned by :func:`compute_wer`.
@@ -139,3 +164,4 @@ def compute_accuracy(wer: float) -> float:
         Accuracy in the range [0.0, 100.0].
     """
     return max(0.0, 100.0 - wer * 100.0)
+
