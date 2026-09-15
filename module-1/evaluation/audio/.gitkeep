@@ -1,0 +1,3 @@
+# Place your evaluation WAV files here.
+# Files must be 16 kHz mono WAV, under 30 seconds each.
+# Each filename must match a row in ../references.csv

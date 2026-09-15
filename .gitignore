@@ -1,0 +1,88 @@
+# ==========================================================
+# NLP-Research — Root .gitignore
+# ==========================================================
+
+# =========================
+# Secrets / API keys
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Virtual environments
+# =========================
+venv/
+.venv/
+env/
+
+# =========================
+# Python cache
+# =========================
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+
+# =========================
+# Testing / tooling cache
+# =========================
+.pytest_cache/
+.mypy_cache/
+
+# =========================
+# Jupyter
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Module 2 — Large Dataset (~15 GB)
+# The COCO 2014 images, COCO annotations, and RefCOCO files
+# must remain on the local machine but must NOT be committed.
+# =========================
+module-2/datasets/
+
+# =========================
+# Module 2 — Generated outputs
+# These are produced by notebooks 02 and 03 and can be
+# re-generated locally. Kept off GitHub to reduce repo size.
+# =========================
+module-2/outputs/
+
+# =========================
+# Module 1 — Legacy / archived code
+# Not part of the active pipeline. Kept locally for reference.
+# =========================
+module-1/legacy/
+
+# =========================
+# Audio files (large / personal recordings)
+# Evaluation audio samples are small and required for
+# reproducibility — kept via explicit exception below.
+# =========================
+*.wav
+*.mp3
+*.flac
+
+# Exception: small evaluation benchmark WAV recordings
+# (10 × ~160 KB = ~1.6 MB total — required to reproduce results)
+!module-1/evaluation/audio/*.wav
+
+# =========================
+# ML model / checkpoint files
+# =========================
+*.pt
+*.pth
+*.ckpt
+*.bin
+*.onnx
+*.safetensors
+
+# =========================
+# OS / Editor artefacts
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/

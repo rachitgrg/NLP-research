@@ -1,0 +1,59 @@
+# ─────────────────────────────────────────────────────────────
+# Module 1 – Hearing & Understanding
+# requirements.txt
+# ─────────────────────────────────────────────────────────────
+#
+# STEP 1 — Install all packages:
+#   pip install -r requirements.txt
+#
+# STEP 2 — Download the spaCy English model (run once):
+#   python -m spacy download en_core_web_sm
+#
+# STEP 3 — Add your Sarvam API key to .env:
+#   cp .env.example .env
+#   # then edit .env and paste your key from https://dashboard.sarvam.ai/
+#
+# ─────────────────────────────────────────────────────────────
+
+# ── Speech Recognition (Sarvam AI — Cloud) ───────────────────
+# Official Sarvam AI Python SDK — Saaras v3 Speech-to-Text
+sarvamai
+
+# ── Environment / Secrets ─────────────────────────────────────
+# Load SARVAM_API_KEY from a .env file during development
+python-dotenv
+
+# ── NLP ──────────────────────────────────────────────────────
+# spaCy: rule-based NLP for keyword extraction
+spacy
+
+# ── Audio I/O ─────────────────────────────────────────────────
+# sounddevice: cross-platform microphone recording via PortAudio
+sounddevice
+# soundfile: read/write WAV files
+soundfile
+# numpy: required by sounddevice for audio buffer handling
+numpy
+
+# ── Testing ───────────────────────────────────────────────────
+pytest
+
+# ─────────────────────────────────────────────────────────────
+# EVALUATION — speech recognition benchmarking (Module 1 only)
+# Used exclusively by evaluation/evaluate_models.py.
+# Do NOT import these from pipeline/, speech/, or main.py.
+#
+# Install evaluation dependencies:
+#   pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────
+
+# faster-whisper: Whisper Tiny local CPU inference (evaluation only)
+#   - Requires ctranslate2; on Windows the MSVC runtime must be installed.
+#   - Use --mock flag to skip this dependency during dry-runs.
+faster-whisper
+
+# jiwer: Word Error Rate (WER) and Character Error Rate (CER) computation
+jiwer
+
+# matplotlib: bar-chart comparison graph generation
+matplotlib
