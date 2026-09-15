@@ -1,11 +1,11 @@
 sample_id,reference,audio_duration_seconds,sarvam_text,sarvam_wer,sarvam_cer,sarvam_exact_match,sarvam_latency_seconds,whisper_tiny_text,whisper_tiny_wer,whisper_tiny_cer,whisper_tiny_exact_match,whisper_tiny_latency_seconds,whisper_base_text,whisper_base_wer,whisper_base_cer,whisper_base_exact_match,whisper_base_latency_seconds
-sample_01.wav,Where is my black bottle?,5.00,,1.0000,1.0000,False,1.0645,,1.0000,1.0000,False,0.5622,,1.0000,1.0000,False,0.4155
-sample_02.wav,Where is my phone?,5.00,,1.0000,1.0000,False,0.3868,,1.0000,1.0000,False,0.2089,,1.0000,1.0000,False,0.3880
-sample_03.wav,What is the color of this bag?,5.00,,1.0000,1.0000,False,0.3372,,1.0000,1.0000,False,0.2169,,1.0000,1.0000,False,0.3942
-sample_04.wav,Is there a laptop in front of me?,5.00,,1.0000,1.0000,False,0.3755,,1.0000,1.0000,False,0.2170,,1.0000,1.0000,False,0.3832
-sample_05.wav,Please identify this object.,5.00,,1.0000,1.0000,False,0.5169,,1.0000,1.0000,False,0.2099,,1.0000,1.0000,False,0.3813
-sample_06.wav,Where is the red bag?,5.00,,1.0000,1.0000,False,0.3740,,1.0000,1.0000,False,0.2263,,1.0000,1.0000,False,0.4022
-sample_07.wav,Can you find my bottle?,5.00,,1.0000,1.0000,False,0.3157,,1.0000,1.0000,False,0.2083,,1.0000,1.0000,False,0.3854
-sample_08.wav,Where is the blue book?,5.00,,1.0000,1.0000,False,0.5953,,1.0000,1.0000,False,0.2462,,1.0000,1.0000,False,0.4017
-sample_09.wav,Is my phone on the table?,5.00,,1.0000,1.0000,False,0.3970,,1.0000,1.0000,False,0.2058,,1.0000,1.0000,False,0.4020
-sample_10.wav,Where is the laptop?,5.00,,1.0000,1.0000,False,0.3653,,1.0000,1.0000,False,0.2153,,1.0000,1.0000,False,0.3887
+sample_01.wav,Where is my black bottle?,5.00,Where is my black bottle?,0.0000,0.0000,True,0.8742,Where is my black bottle?,0.0000,0.0000,True,0.6372,Where is my black bottle?,0.0000,0.0000,True,0.7483
+sample_02.wav,Where is my phone?,5.00,Where is my phone?,0.0000,0.0000,True,0.4865,Where is my phone?,0.0000,0.0000,True,0.4025,Where is my phone?,0.0000,0.0000,True,0.7595
+sample_03.wav,What is the color of this bag?,5.00,What is the color of this bag?,0.0000,0.0000,True,0.4595,What is the color of this bag?,0.0000,0.0000,True,0.4091,What is the color of this bag?,0.0000,0.0000,True,0.7573
+sample_04.wav,Is there a laptop in front of me?,5.00,Is there a laptop in front of me?,0.0000,0.0000,True,0.4410,They are a laptop in front of me.,0.2500,0.1875,False,0.4202,They are a laptop in front of me.,0.2500,0.1875,False,0.7713
+sample_05.wav,Please identify this object.,5.00,Please identify this object.,0.0000,0.0000,True,0.4161,Please identify this object.,0.0000,0.0000,True,0.4082,Please identify this object.,0.0000,0.0000,True,0.7718
+sample_06.wav,Where is the red bag?,5.00,Where is the red bag?,0.0000,0.0000,True,0.5068,Where is the red bag?,0.0000,0.0000,True,0.4116,Where is the red bag?,0.0000,0.0000,True,0.8190
+sample_07.wav,Can you find my bottle?,5.00,Can you find my bottle?,0.0000,0.0000,True,0.6545,Can you find my bottle?,0.0000,0.0000,True,0.4632,Can you find my bottle?,0.0000,0.0000,True,0.8165
+sample_08.wav,Where is the blue book?,5.00,Where is my blue book?,0.2000,0.1364,False,0.7062,Where is my blue book?,0.2000,0.1364,False,0.4473,Here is my blue book.,0.4000,0.1818,False,0.8262
+sample_09.wav,Is my phone on the table?,5.00,Is my phone on the table?,0.0000,0.0000,True,0.5900,is my phone on the table.,0.0000,0.0000,True,0.4211,is my phone on the table.,0.0000,0.0000,True,0.7641
+sample_10.wav,Where is the laptop?,5.00,Where is the laptop?,0.0000,0.0000,True,0.4674,Where is the laptop?,0.0000,0.0000,True,0.3927,Where is the laptop?,0.0000,0.0000,True,0.7520
