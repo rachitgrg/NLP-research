@@ -3,14 +3,16 @@
 # Module 3 – Camera & YOLO Object Detection
 # Live camera capture + YOLO inference loop.
 #
-# This module is the "orchestrator" for Milestone 2.
+# This module is the "orchestrator" for Milestone 2 and 3.
 # It wires together:
 #   OpenCV camera capture  →  YOLODetector  →  visualizer
+#                                           →  TargetMatcher  (M3, optional)
 #
 # The public entry point is:
 #
 #   from detection.camera_detector import run_camera_loop
-#   run_camera_loop(detector)
+#   run_camera_loop(detector)                          # M2 mode
+#   run_camera_loop(detector, target_matcher, "bottle") # M3 mode
 #
 # It deliberately does NOT contain any YOLO logic — that all lives
 # inside YOLODetector so future modules can reuse detect() cleanly.
@@ -31,8 +33,9 @@ from config.config import (
     FONT_SCALE,
     LOG_EVERY_N_FRAMES,
     QUIT_KEY,
+    TARGET_STATUS_COOLDOWN_S,
 )
-from detection.visualizer import draw_detections, draw_status_bar
+from detection.visualizer import draw_detections, draw_status_bar, draw_target_overlay
 from detection.yolo_detector import YOLODetector
 
 logger = logging.getLogger(__name__)
@@ -79,25 +82,36 @@ def _open_camera(index: int, backend: int) -> cv2.VideoCapture:
     return cap
 
 
-def run_camera_loop(detector: YOLODetector) -> None:
+def run_camera_loop(
+    detector: YOLODetector,
+    target_matcher: Any | None = None,
+    raw_target: str | None = None,
+) -> None:
     """
     Start the live camera capture + YOLO detection loop.
 
-    The loop:
-    1. Reads a frame from the webcam.
-    2. Passes it to ``detector.detect(frame)``.
-    3. Draws bounding boxes and labels via the visualizer.
-    4. Displays the annotated frame in an OpenCV window.
-    5. Periodically logs detection summaries to the terminal.
-    6. Exits cleanly when the user presses Q (or closes the window).
+    Milestone 2 (M2) mode — ``target_matcher`` is ``None``:
+        The loop runs exactly as before: frame capture → YOLO
+        inference → visualisation → Q to quit.
 
-    The camera is always released and the window destroyed on exit,
-    even if an exception is raised mid-loop.
+    Milestone 3 (M3) mode — ``target_matcher`` and ``raw_target`` supplied:
+        In addition to the M2 pipeline, after each inference the
+        loop calls ``target_matcher.match(raw_target, detections)``
+        and:
+        • Overlays the match status on the live video window.
+        • Prints a terminal status message subject to a cooldown
+          to avoid flooding.
 
     Parameters
     ----------
     detector : YOLODetector
         An already-initialised detector instance.
+    target_matcher : TargetMatcher | None
+        An already-initialised :class:`~matching.target_matcher.TargetMatcher`
+        instance.  Pass ``None`` to run in pure M2 mode.
+    raw_target : str | None
+        The raw target string (e.g. ``"bottle"`` or ``"my phone"``).
+        Required when ``target_matcher`` is not ``None``.
     """
     cap = _open_camera(CAMERA_INDEX, CAMERA_BACKEND)
 
@@ -108,9 +122,18 @@ def run_camera_loop(detector: YOLODetector) -> None:
     fps_timer   = time.perf_counter()
     fps         = 0.0
 
+    # ── M3: target-match state ────────────────────────────────
+    # Track when we last printed a target-status message so we
+    # don't flood the terminal at 20+ FPS.
+    m3_mode              = target_matcher is not None and raw_target
+    last_status_print_t  = 0.0       # epoch seconds
+    last_printed_status  = ""        # "FOUND" / "NOT FOUND" / ""
+
     print("\n" + "─" * 55)
     print("  YOLO Live Detection running.")
     print(f"  Model confidence threshold : {detector.confidence_threshold:.2f}")
+    if m3_mode:
+        print(f"  Target object              : {raw_target!r}")
     print("  Press  Q  in the video window to quit.")
     print("─" * 55 + "\n")
 
@@ -133,9 +156,16 @@ def run_camera_loop(detector: YOLODetector) -> None:
                 fps = 30.0 / max(now - fps_timer, 1e-6)
                 fps_timer = now
 
-            # ── Visualisation ────────────────────────────────
+            # ── M3: target matching ───────────────────────────
+            match_result: dict[str, Any] | None = None
+            if m3_mode:
+                match_result = target_matcher.match(raw_target, detections)
+
+            # ── Visualisation ─────────────────────────────────
             draw_detections(frame, detections, BBOX_THICKNESS, FONT_SCALE)
             draw_status_bar(frame, len(detections), fps)
+            if match_result is not None:
+                draw_target_overlay(frame, match_result)
 
             cv2.imshow(_WINDOW_TITLE, frame)
 
@@ -151,6 +181,20 @@ def run_camera_loop(detector: YOLODetector) -> None:
                         )
                 else:
                     print(f"[Frame {frame_count:>6d}]  No objects detected.")
+
+            # ── M3: print target status (with cooldown) ──────
+            if match_result is not None:
+                now = time.perf_counter()
+                current_status = "FOUND" if match_result["found"] else "NOT FOUND"
+                elapsed = now - last_status_print_t
+                should_print = (
+                    elapsed >= TARGET_STATUS_COOLDOWN_S
+                    or current_status != last_printed_status
+                )
+                if should_print:
+                    _print_target_status(match_result)
+                    last_status_print_t = now
+                    last_printed_status = current_status
 
             # ── Quit on Q key or window close ─────────────────
             key = cv2.waitKey(1) & 0xFF
@@ -171,3 +215,40 @@ def run_camera_loop(detector: YOLODetector) -> None:
         cv2.destroyAllWindows()
         logger.info("Camera released. Window destroyed.")
         print("\nCamera resources released. Goodbye!\n")
+
+
+# ── Private helpers ────────────────────────────────────────────
+
+def _print_target_status(match_result: dict[str, Any]) -> None:
+    """
+    Print a concise target-match status block to the terminal.
+
+    Parameters
+    ----------
+    match_result : dict
+        Result dict from ``TargetMatcher.match()``.
+    """
+    target = match_result["target"]
+    reason = match_result.get("reason")
+
+    if reason == "unsupported_class":
+        print(
+            f"\n  Target   : {target}\n"
+            f"  Status   : UNSUPPORTED (not a COCO-80 class — YOLOv8n cannot detect this)\n"
+        )
+        return
+
+    if match_result["found"]:
+        conf = match_result["confidence"]
+        bbox = match_result["bbox"]
+        print(
+            f"\n  Target   : {target}\n"
+            f"  Status   : FOUND\n"
+            f"  Confidence: {conf:.2f}\n"
+            f"  BBox     : {bbox}\n"
+        )
+    else:
+        print(
+            f"\n  Target   : {target}\n"
+            f"  Status   : NOT FOUND\n"
+        )

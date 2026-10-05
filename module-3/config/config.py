@@ -61,3 +61,12 @@ FONT_SCALE: float = 0.55
 # Print a detection summary every N frames (0 = every frame).
 # Set higher to avoid flooding the terminal.
 LOG_EVERY_N_FRAMES: int = int(os.environ.get("LOG_EVERY_N_FRAMES", "30"))
+
+# ── Milestone 3 — Target Matching ────────────────────────────
+# Minimum seconds between repeated terminal messages for the same
+# target-match status (FOUND / NOT FOUND).  Prevents flooding the
+# terminal when the camera loop runs at 20+ FPS.
+# Set to 0 to print on every LOG_EVERY_N_FRAMES tick.
+TARGET_STATUS_COOLDOWN_S: float = float(
+    os.environ.get("TARGET_STATUS_COOLDOWN_S", "2.0")
+)

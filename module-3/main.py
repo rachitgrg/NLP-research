@@ -1,12 +1,18 @@
 # main.py
 # ─────────────────────────────────────────────────────────────
-# Module 3 – Camera & YOLO Object Detection
+# Module 3 – Camera & YOLO Object Detection  (Milestones 2 & 3)
 # Entry point — run the live YOLO camera pipeline.
 #
-# Usage:
+# Milestone 2 (M2) — default mode, no --target flag:
 #   python main.py
 #   python main.py --model yolov8s.pt --conf 0.5
 #   python main.py --camera 1 --device cuda
+#
+# Milestone 3 (M3) — supply a target object with --target:
+#   python main.py --target bottle
+#   python main.py --target "cell phone"
+#   python main.py --target phone        # alias -> "cell phone"
+#   python main.py --target watch        # unsupported COCO class
 #
 # All parameters default to the values in config/config.py.
 # Command-line flags override config values for a single run only
@@ -35,21 +41,27 @@ from config.config import (
 )
 from detection.camera_detector import run_camera_loop
 from detection.yolo_detector import YOLODetector
+from matching.target_matcher import TargetMatcher
+from matching.target_normalizer import is_supported_class, normalize_target
 
 
-BANNER = """
+BANNER = """\
 ╔══════════════════════════════════════════════════════╗
 ║      MODULE 3 — CAMERA & YOLO OBJECT DETECTION      ║
 ║                                                      ║
 ║  Real-time YOLOv8 detection on live webcam feed.     ║
-║  Milestone 2: Camera + YOLO pipeline.                ║
+║  Milestones 2 & 3: Camera + YOLO + Target Matching.  ║
 ╚══════════════════════════════════════════════════════╝
 """
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Module 3: Live YOLO object detection via webcam."
+        description=(
+            "Module 3: Live YOLO object detection via webcam.\n"
+            "M2 mode (default): detects all objects.\n"
+            "M3 mode (--target): also matches a specific requested object."
+        )
     )
     parser.add_argument(
         "--model",
@@ -90,6 +102,18 @@ def parse_args() -> argparse.Namespace:
         metavar="INDEX",
         help=f"Webcam device index. Default: {CAMERA_INDEX}.",
     )
+    # ── M3: target object ──────────────────────────────────────
+    parser.add_argument(
+        "--target",
+        type=str,
+        default=None,
+        metavar="OBJECT",
+        help=(
+            "Milestone 3: object to search for in the camera feed. "
+            "Examples: --target bottle  |  --target phone  |  --target 'cell phone'. "
+            "When omitted the pipeline runs in M2 detection-only mode."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -102,6 +126,13 @@ def main() -> None:
     print(f"  Image size : {args.imgsz}")
     print(f"  Device     : {args.device}")
     print(f"  Camera idx : {args.camera}")
+    if args.target:
+        normalized = normalize_target(args.target)
+        supported  = is_supported_class(normalized)
+        print(f"  Target     : {args.target!r}  →  normalized: {normalized!r}", end="")
+        if not supported:
+            print("  ⚠  NOT a COCO-80 class (will show as UNSUPPORTED)", end="")
+        print()
     print()
 
     # ── Initialise YOLO detector (loads model once) ────────────
@@ -122,9 +153,14 @@ def main() -> None:
 
     print("Model ready.\n")
 
+    # ── M3: initialise target matcher (if --target given) ──────
+    target_matcher = None
+    if args.target:
+        target_matcher = TargetMatcher()
+
     # ── Start live camera + detection loop ─────────────────────
     try:
-        run_camera_loop(detector)
+        run_camera_loop(detector, target_matcher, args.target)
     except RuntimeError as exc:
         # Camera failed to open — print a friendly message
         logger.error("%s", exc)

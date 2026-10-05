@@ -139,3 +139,83 @@ def draw_status_bar(
         cv2.LINE_AA,
     )
     return frame
+
+
+def draw_target_overlay(
+    frame: np.ndarray,
+    match_result: dict,
+) -> np.ndarray:
+    """
+    Overlay a target-match status banner at the bottom of the frame.
+
+    Milestone 3 addition — called only when a target is active.
+
+    Colour coding:
+    * **Green**  — target FOUND (high visibility, positive feedback).
+    * **Red**    — target NOT FOUND.
+    * **Orange** — target is an unsupported COCO class.
+
+    Parameters
+    ----------
+    frame : np.ndarray
+        BGR image to annotate (modified in-place and also returned).
+    match_result : dict
+        Result dict from ``TargetMatcher.match()``.  Expected keys:
+        ``target``, ``found``, ``confidence``, ``bbox``,
+        ``matched_class``, ``reason``.
+
+    Returns
+    -------
+    np.ndarray
+        The annotated frame (same array as *frame*).
+    """
+    h, w = frame.shape[:2]
+
+    target = match_result.get("target", "")
+    found  = match_result.get("found", False)
+    reason = match_result.get("reason")
+    conf   = match_result.get("confidence")
+    bbox   = match_result.get("bbox")
+
+    # ── Choose colour and label ────────────────────────────────
+    if reason == "unsupported_class":
+        colour     = (0, 165, 255)          # orange (BGR)
+        status_str = f"TARGET: {target}  |  UNSUPPORTED CLASS"
+    elif found:
+        colour     = (0, 210, 60)           # green (BGR)
+        conf_str   = f"{conf:.2f}" if conf is not None else "?"
+        status_str = f"TARGET: {target}  |  FOUND  conf={conf_str}"
+    else:
+        colour     = (0, 0, 220)            # red (BGR)
+        status_str = f"TARGET: {target}  |  NOT FOUND"
+
+    # ── Banner background ──────────────────────────────────────
+    banner_h = 30
+    banner_y = h - banner_h
+    cv2.rectangle(frame, (0, banner_y), (w, h), colour, cv2.FILLED)
+
+    # ── Banner text ────────────────────────────────────────────
+    cv2.putText(
+        frame,
+        status_str,
+        (8, h - 9),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.58,
+        (255, 255, 255),    # white text on coloured banner
+        1,
+        cv2.LINE_AA,
+    )
+
+    # ── Highlight matched bbox with a thicker border ───────────
+    if found and bbox is not None:
+        x1, y1, x2, y2 = bbox
+        cv2.rectangle(frame, (x1, y1), (x2, y2), colour, 4)
+
+        # Cross-hair at bbox centre
+        cx, cy = (x1 + x2) // 2, (y1 + y2) // 2
+        cross_len = 12
+        cv2.line(frame, (cx - cross_len, cy), (cx + cross_len, cy), colour, 2)
+        cv2.line(frame, (cx, cy - cross_len), (cx, cy + cross_len), colour, 2)
+
+    return frame
+

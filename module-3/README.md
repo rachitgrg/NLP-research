@@ -1,14 +1,15 @@
-# Module 3 — Camera & YOLO Object Detection
+# Module 3 — Camera & YOLO Object Detection + Target Matching
 
-> Part of the NLP Research project.
-> This module implements the live computer-vision pipeline for Milestone 2.
+> Part of the NLP Research project — Assistive navigation for visually impaired users.
+> This module covers **Milestone 2** (camera + YOLO) and **Milestone 3** (target matching).
 
 ---
 
 ## What This Module Does
 
-This module adds a real-time object-detection pipeline on top of Module 1's voice output.
-It opens the device webcam, runs **YOLOv8** inference on every frame, and displays annotated
+### Milestone 2 — Live YOLO Detection
+
+Opens the device webcam, runs **YOLOv8n** inference on every frame, and displays annotated
 bounding boxes with class names and confidence scores in a live OpenCV window.
 
 ```
@@ -25,14 +26,31 @@ Visualizer (draw_detections)
 Live display window  (press Q to quit)
 ```
 
-**Example terminal output:**
+### Milestone 3 — Target Matching
+
+Connects the **requested object from Module 1** with the **objects detected by YOLO**.
+Answers the single question: **"Is the object the user asked for currently visible?"**
 
 ```
-[Frame     30]  3 object(s) detected:
-   Detected: person               | conf: 0.94 | bbox: [12, 45, 310, 420]
-   Detected: bottle               | conf: 0.91 | bbox: [380, 200, 480, 430]
-   Detected: chair                | conf: 0.87 | bbox: [150, 100, 580, 470]
+User voice input (Module 1)
+    ↓
+HearingPipeline.run(audio)
+    → result["object"] = "bottle"
+    ↓
+TargetNormalizer.normalize_target("bottle")
+    → canonical COCO class name
+    ↓
+YOLODetector.detect(frame)
+    → list of detections
+    ↓
+TargetMatcher.match("bottle", detections)
+    ↓
+{"target": "bottle", "found": True, "confidence": 0.86, "bbox": [...], ...}
 ```
+
+> ⚠️  M3 **only** answers "found / not found". Navigation, left/right instructions,
+> distance estimation, TTS, and object tracking are **NOT** implemented here —
+> those belong to Milestone 4+.
 
 ---
 
@@ -48,18 +66,24 @@ module-3/
 ├── detection/
 │   ├── __init__.py
 │   ├── yolo_detector.py       # Reusable YOLODetector class (YOLO interface)
-│   ├── camera_detector.py     # Live camera loop + orchestration
-│   └── visualizer.py          # Bounding-box drawing utilities
+│   ├── camera_detector.py     # Live camera loop + orchestration (M2 & M3)
+│   └── visualizer.py          # Bounding-box drawing + target overlay (M3)
+│
+├── matching/                  # ← NEW in Milestone 3
+│   ├── __init__.py
+│   ├── target_normalizer.py   # Strip articles/possessives, alias mapping, COCO-80 set
+│   └── target_matcher.py      # TargetMatcher — core M3 component
 │
 ├── tests/
 │   ├── __init__.py
 │   ├── conftest.py            # pytest sys.path bootstrap
 │   ├── test_config.py         # Config value type + env-override tests
 │   ├── test_yolo_detector.py  # Detector output structure (mocked, no GPU needed)
-│   └── test_visualizer.py     # Draw function tests
+│   ├── test_visualizer.py     # Draw function tests
+│   └── test_target_matcher.py # ← NEW — 27 tests for M3 target matching
 │
-├── main.py                    # Entry point — run the live pipeline
-├── requirements.txt           # Dependencies with install instructions
+├── main.py                    # Entry point — M2 mode + M3 --target flag
+├── requirements.txt
 ├── .gitignore
 └── README.md                  # This file
 ```
@@ -72,15 +96,11 @@ module-3/
 
 | Property | Value |
 |---|---|
-| Model | YOLOv8n (pretrained on COCO 128 classes) |
+| Model | YOLOv8n (pretrained on COCO) |
 | Weights file | `yolov8n.pt` (~6 MB) |
 | Dataset | COCO (80 object categories) |
 | Download | Automatic on first run |
 | Inference | CPU (default) — also supports CUDA / MPS |
-
-YOLOv8n is the smallest and fastest YOLOv8 variant — suitable for real-time inference on a
-normal laptop CPU. Larger variants (`yolov8s`, `yolov8m`, `yolov8l`, `yolov8x`) can be
-selected via `--model` or `config.py`.
 
 ---
 
@@ -97,23 +117,90 @@ Each detected object is represented as a plain Python dict:
 }
 ```
 
-This structure is intentionally simple so that **future modules** (target matching,
-navigation, obstacle avoidance) can consume it without any YOLO-specific knowledge.
-
 ---
 
-## Dependencies
+## M3 — Target Matching
 
-| Package | Version | Purpose |
-|---|---|---|
-| `ultralytics` | latest | YOLOv8 model loading, inference, COCO class names |
-| `opencv-python` | 5.0.0.93 | Webcam capture, frame display, drawing |
-| `numpy` | ≥ 2.0 | Array operations for frame data |
-| PyTorch | (auto-installed by ultralytics) | YOLO inference backend |
+### How Target Matching Works
 
-> **Python 3.13 note:**  `opencv-python` 5.0.0.93 is the first release with a stable
-> `cp37-abi3` wheel that works on Python 3.13. Earlier versions (4.x) do not have 3.13
-> wheels on PyPI.
+1. **Normalization** (`target_normalizer.py`):
+   - Strips leading articles and possessives: `"my bottle"` → `"bottle"`
+   - Lowercases: `"BOTTLE"` → `"bottle"`
+   - Applies spoken-word alias mapping: `"phone"` → `"cell phone"`
+   - Checks COCO-80 support: `"watch"` → flagged as `unsupported_class`
+
+2. **Matching** (`target_matcher.py`):
+   - Compares the normalized target against every detection's `class_name` (case-insensitive)
+   - If multiple instances of the same class are detected, **the highest-confidence one** is returned
+   - Returns a consistent result dict
+
+### Result Schema
+
+**Target found:**
+```python
+{
+    "target":        "bottle",
+    "found":         True,
+    "confidence":    0.86,
+    "bbox":          [77, 162, 188, 477],
+    "matched_class": "bottle",
+    "reason":        None
+}
+```
+
+**Target not found:**
+```python
+{
+    "target":        "bottle",
+    "found":         False,
+    "confidence":    None,
+    "bbox":          None,
+    "matched_class": None,
+    "reason":        None
+}
+```
+
+**Unsupported target (not a COCO-80 class):**
+```python
+{
+    "target":        "watch",
+    "found":         False,
+    "confidence":    None,
+    "bbox":          None,
+    "matched_class": None,
+    "reason":        "unsupported_class"
+}
+```
+
+### Alias Mapping (spoken word → COCO class)
+
+| User says | Resolved COCO class |
+|---|---|
+| `phone`, `mobile`, `smartphone` | `cell phone` |
+| `sofa` | `couch` |
+| `television`, `monitor`, `screen` | `tv` |
+| `fridge` | `refrigerator` |
+| `plant`, `flower pot` | `potted plant` |
+| `table` | `dining table` |
+| `ball`, `football`, `basketball` | `sports ball` |
+| `motorbike` | `motorcycle` |
+| `bike` | `bicycle` |
+
+### COCO-80 Limitation
+
+YOLOv8n is pretrained on COCO and can **only** detect its 80 classes.
+Objects **not** detectable by this model (returned as `unsupported_class`):
+
+| User says | Why not supported |
+|---|---|
+| `watch` / `wristwatch` | COCO has `clock` (wall clocks), not wristwatches. Mapping would be misleading. |
+| `key` / `keys` | No COCO class. |
+| `pen` / `pencil` | No COCO class. |
+| `slipper` / `shoe` | No COCO class. |
+| `glasses` | No COCO class. |
+
+> **Important**: `"watch"` is deliberately **not** mapped to `"clock"`. A wristwatch is not
+> a wall clock. Reporting a false positive to a visually impaired user would be harmful.
 
 ---
 
@@ -133,8 +220,6 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-> First install will download PyTorch (~200 MB CPU build) and Ultralytics automatically.
-
 ### Step 3 — Run the pipeline
 
 ```bash
@@ -145,8 +230,10 @@ python main.py
 
 ## Running the Pipeline
 
+### M2 mode — detect all objects
+
 ```powershell
-# Default settings (yolov8n, conf=0.40, CPU, camera index 0)
+# Default settings (yolov8n, conf=0.40, CPU, camera 0)
 python main.py
 
 # Use a bigger model
@@ -155,32 +242,77 @@ python main.py --model yolov8s.pt
 # Raise the confidence threshold
 python main.py --conf 0.60
 
-# Use GPU (if CUDA is available)
+# Use GPU
 python main.py --device cuda
 
-# Use camera index 1 (e.g. external webcam)
+# Use camera index 1
 python main.py --camera 1
-
-# Combine flags
-python main.py --model yolov8s.pt --conf 0.50 --device cuda --camera 0
 ```
 
-### Available CLI flags
+### M3 mode — find a specific object
+
+```powershell
+# Search for a bottle
+python main.py --target bottle
+
+# Search for a phone (alias resolves to "cell phone")
+python main.py --target phone
+
+# Test with an unsupported COCO class
+python main.py --target watch
+
+# Combine M3 with M2 flags
+python main.py --target bottle --conf 0.50 --camera 0
+```
+
+### M3 terminal output examples
+
+**Target found:**
+```
+  Target   : bottle
+  Status   : FOUND
+  Confidence: 0.86
+  BBox     : [77, 162, 188, 477]
+```
+
+**Target not found:**
+```
+  Target   : bottle
+  Status   : NOT FOUND
+```
+
+**Unsupported class:**
+```
+  Target   : watch
+  Status   : UNSUPPORTED (not a COCO-80 class — YOLOv8n cannot detect this)
+```
+
+### M3 visual overlay
+
+When `--target` is supplied, the live video window shows:
+- A **green banner** at the bottom: `TARGET: bottle | FOUND conf=0.86`
+- A **red banner** when not found: `TARGET: bottle | NOT FOUND`
+- An **orange banner** for unsupported: `TARGET: watch | UNSUPPORTED CLASS`
+- The matched bounding box is **highlighted in green** with a cross-hair at its centre
+
+---
+
+## Available CLI Flags
 
 | Flag | Default | Description |
-|---|---|---|
+|---|---|---|\
 | `--model PATH` | `yolov8n.pt` | Path to YOLO weights |
 | `--conf FLOAT` | `0.40` | Confidence threshold |
 | `--imgsz INT` | `640` | Inference image size (pixels) |
 | `--device DEVICE` | `cpu` | Inference device: `cpu`, `cuda`, `mps` |
 | `--camera INDEX` | `0` | Webcam device index |
+| `--target OBJECT` | *(none)* | M3: object to search for (e.g. `bottle`, `phone`) |
 
 ---
 
 ## Configuration
 
-All default values live in [`config/config.py`](config/config.py) and can also be
-overridden via environment variables — useful for deployment without editing code.
+All default values live in [`config/config.py`](config/config.py):
 
 | Config variable | Default | Env variable override |
 |---|---|---|
@@ -190,31 +322,7 @@ overridden via environment variables — useful for deployment without editing c
 | `INFERENCE_DEVICE` | `"cpu"` | `INFERENCE_DEVICE` |
 | `CAMERA_INDEX` | `0` | `CAMERA_INDEX` |
 | `LOG_EVERY_N_FRAMES` | `30` | `LOG_EVERY_N_FRAMES` |
-
----
-
-## Expected Output
-
-When you run `python main.py` you should see:
-
-1. **Terminal**: model loading progress, then a detection summary every 30 frames:
-   ```
-   ───────────────────────────────────────────────────────
-     YOLO Live Detection running.
-     Model confidence threshold : 0.40
-     Press  Q  in the video window to quit.
-   ───────────────────────────────────────────────────────
-
-   [Frame     30]  2 object(s) detected:
-      Detected: person               | conf: 0.94 | bbox: [10, 50, 300, 420]
-      Detected: bottle               | conf: 0.91 | bbox: [380, 180, 480, 430]
-   ```
-
-2. **Live window**: Your webcam feed with coloured bounding boxes around detected objects.
-   Each box has a filled label showing `class_name confidence` (e.g., `bottle 0.91`).
-   A status bar at the top shows total object count and FPS.
-
-3. **Exit**: Press **Q** in the video window (or close it) to quit cleanly.
+| `TARGET_STATUS_COOLDOWN_S` | `2.0` | `TARGET_STATUS_COOLDOWN_S` |
 
 ---
 
@@ -222,37 +330,47 @@ When you run `python main.py` you should see:
 
 ```bash
 # From inside module-3/ with the venv activated
-pip install pytest
 pytest tests/ -v
 ```
 
 The tests use **mocking** — no camera, no model download, and no GPU are required.
 
+**Test counts:**
+- `test_config.py` — 11 tests (config defaults + env overrides)
+- `test_yolo_detector.py` — 13 tests (detection output, edge cases)
+- `test_visualizer.py` — 8 tests (draw functions)
+- `test_target_matcher.py` — 26 tests (normalization, matching, schema)
+- **Total: 58 tests**
+
+---
+
+## Milestone Scope
+
+| Milestone | What it does |
+|---|---|
+| **M2** (this module) | Camera + YOLO: detect all objects in the live frame |
+| **M3** (this module) | Target Matching: "is the user's requested object currently visible?" |
+| M4 (future) | Spatial localization: left / centre / right of frame |
+| M5+ (future) | Navigation, TTS, obstacle avoidance, object tracking |
+
+### What M3 intentionally does NOT implement
+
+- ❌ Left/right/center navigation instructions
+- ❌ Distance estimation ("you are close")
+- ❌ Object tracking (DeepSORT / ByteTrack)
+- ❌ Text-to-Speech (TTS)
+- ❌ Continuous movement guidance
+- ❌ Obstacle avoidance
+- ❌ Custom YOLO training
+- ❌ RefCOCO integration
+
 ---
 
 ## Limitations
 
-- Only the 80 COCO object classes are detected (pretrained weights).
+- Only the 80 COCO object classes are detectable (pretrained weights).
 - Inference runs on CPU by default — typically 5–15 FPS on a mid-range laptop.
-  Passing `--device cuda` dramatically improves throughput if a CUDA GPU is available.
-- The confidence threshold (`0.40`) may need tuning per environment (lighting, distance).
-- No tracking across frames yet — each frame is processed independently.
-
----
-
-## What Comes in Milestone 3?
-
-> ⚠️ The following are **NOT** implemented here. They are listed for planning only.
-
-**Milestone 3 — Target Matching & Localization:**
-
-1. **Connect Module 1 output → Module 3 detector** — the `object` field extracted by
-   the NLP parser (e.g. `"bottle"`) is passed to the detection loop.
-2. **Target matching** — after every frame, check if any detection's `class_name`
-   matches the requested object.
-3. **Target localization** — once matched, compute the bounding box centre to determine
-   where in the frame the object is (left / centre / right, near / far).
-4. **Voice feedback** — trigger a TTS response when the target is found
-   (e.g. "Your bottle is on the left").
-5. **COCO 2014 / RefCOCO integration** — decide how the pre-processed dataset from
-   Module 2 feeds into fine-tuning YOLO or a grounding model.
+  Passing `--device cuda` improves throughput if a CUDA GPU is available.
+- The confidence threshold (`0.40`) may need tuning per environment.
+- No object tracking — each frame is matched independently.
+- `"watch"` (wristwatch) cannot be found; the model knows `clock` (wall/table clock) only.
