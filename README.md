@@ -26,6 +26,9 @@ It establishes the two foundational pillars required before visual grounding can
 **2. Dataset Foundation (Implemented):**  
 `COCO + RefCOCO → Validation → Preprocessing → Exploratory Data Analysis (EDA) → [Future Grounding Dataset]`
 
+**3. Camera & YOLO Detection (Implemented — Milestone 2):**  
+`Webcam → OpenCV Frame Capture → YOLOv8n Inference → Structured Detections → Live Annotated Display → [Future: Target Matching + Navigation]`
+
 *(See [System Architecture Diagram](research/figures/fig_01_stage1_architecture.png) and [Dataset Pipeline Diagram](research/figures/fig_13_dataset_pipeline.png))*
 
 ---
@@ -34,6 +37,7 @@ It establishes the two foundational pillars required before visual grounding can
 
 - **`module-1/`**: Voice pipeline containing microphone capture, a multi-model ASR framework, and the `spaCy` NLP parser. Includes a robust 77-case automated test suite.
 - **`module-2/`**: Jupyter notebooks dedicated to COCO and RefCOCO dataset inspection, bounding-box validation, split verification, and Linguistic EDA.
+- **`module-3/`**: Real-time camera + YOLO object detection pipeline (Milestone 2). YOLOv8n inference on live webcam feed with structured detection output ready for downstream navigation modules.
 - **`research/`**: The comprehensive academic research output of Stage 1, including formal findings, a faculty demonstration summary, and publication-ready graphs and tables.
 
 ---

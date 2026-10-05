@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────
+# Module 3 – Camera & YOLO Object Detection
+# requirements.txt
+# ─────────────────────────────────────────────────────────────
+#
+# STEP 1 — Create and activate a virtual environment
+#   (run from inside module-3/)
+#
+#   Windows (PowerShell):
+#     python -m venv venv
+#     .\venv\Scripts\Activate.ps1
+#
+#   macOS / Linux:
+#     python3 -m venv venv
+#     source venv/bin/activate
+#
+# STEP 2 — Install dependencies
+#   pip install -r requirements.txt
+#
+# STEP 3 — Run the pipeline
+#   python main.py
+#
+# ─────────────────────────────────────────────────────────────
+
+# ── Computer Vision / Object Detection ───────────────────────
+# Ultralytics YOLOv8 — high-level YOLO training + inference SDK.
+# Installs PyTorch (CPU build) automatically as a dependency.
+ultralytics
+
+# ── Camera / Image I/O ───────────────────────────────────────
+# OpenCV for webcam capture and frame display.
+# opencv-python-headless is NOT used here because we need GUI windows.
+# NOTE: 5.0.0.93 is the first release with a cp37-abi3 wheel that works
+#       on Python 3.13. Pin this version explicitly.
+opencv-python==5.0.0.93
+
+# ── Numerical computing ───────────────────────────────────────
+# numpy is required by both OpenCV and Ultralytics.
+numpy
+
+# ─────────────────────────────────────────────────────────────
+# OPTIONAL — GPU acceleration
+# ─────────────────────────────────────────────────────────────
+# If you have a CUDA-capable GPU, install the CUDA-enabled
+# PyTorch build instead of (or in addition to) the one installed
+# by ultralytics, then pass --device cuda to main.py.
+#
+# Example (CUDA 12.1):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
+# ─────────────────────────────────────────────────────────────

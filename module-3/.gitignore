@@ -1,0 +1,12 @@
+# .gitignore – module-3
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+*.pt
+*.onnx
+*.engine
+runs/
