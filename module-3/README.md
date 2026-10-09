@@ -69,10 +69,15 @@ module-3/
 │   ├── camera_detector.py     # Live camera loop + orchestration (M2 & M3)
 │   └── visualizer.py          # Bounding-box drawing + target overlay (M3)
 │
-├── matching/                  # ← NEW in Milestone 3
-│   ├── __init__.py
+├── matching/                  # Milestone 3 target matching
+│   ├── __init__.py            # Exports SearchState
 │   ├── target_normalizer.py   # Strip articles/possessives, alias mapping, COCO-80 set
-│   └── target_matcher.py      # TargetMatcher — core M3 component
+│   ├── target_matcher.py      # TargetMatcher — core M3 component
+│   └── search_state.py        # SearchState enum (SEARCHING / TARGET_FOUND)
+│
+├── pipeline/                  # Milestone 3 Module 1 integration bridge
+│   ├── __init__.py
+│   └── m3_pipeline.py         # extract_target_from_module1() + run_voice_pipeline()
 │
 ├── tests/
 │   ├── __init__.py
@@ -80,9 +85,10 @@ module-3/
 │   ├── test_config.py         # Config value type + env-override tests
 │   ├── test_yolo_detector.py  # Detector output structure (mocked, no GPU needed)
 │   ├── test_visualizer.py     # Draw function tests
-│   └── test_target_matcher.py # ← NEW — 27 tests for M3 target matching
+│   ├── test_target_matcher.py # 26 tests for M3 target matching
+│   └── test_m3_integration.py # 30 integration tests (5 spec + 25 additional)
 │
-├── main.py                    # Entry point — M2 mode + M3 --target flag
+├── main.py                    # Entry point — M2 + M3 --target + M3 --voice
 ├── requirements.txt
 ├── .gitignore
 └── README.md                  # This file
@@ -251,6 +257,7 @@ python main.py --camera 1
 
 ### M3 mode — find a specific object
 
+**Option A — text target (no Module 1 required):**
 ```powershell
 # Search for a bottle
 python main.py --target bottle
@@ -264,6 +271,17 @@ python main.py --target watch
 # Combine M3 with M2 flags
 python main.py --target bottle --conf 0.50 --camera 0
 ```
+
+**Option B — voice input via Module 1 (full integration):**
+```powershell
+# Record 5s of voice, let Module 1 extract the target
+python main.py --voice
+
+# Record 8s
+python main.py --voice --duration 8
+```
+> Requires Module 1 dependencies (spaCy, sarvam-ai, python-dotenv) and
+> a valid `SARVAM_API_KEY` in `../module-1/.env`.
 
 ### M3 terminal output examples
 
@@ -340,7 +358,8 @@ The tests use **mocking** — no camera, no model download, and no GPU are requi
 - `test_yolo_detector.py` — 13 tests (detection output, edge cases)
 - `test_visualizer.py` — 8 tests (draw functions)
 - `test_target_matcher.py` — 26 tests (normalization, matching, schema)
-- **Total: 58 tests**
+- `test_m3_integration.py` — 30 tests (5 mandatory spec cases + SearchState + Module 1 bridge + full pipeline)
+- **Total: 85 tests**
 
 ---
 

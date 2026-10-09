@@ -1,9 +1,5 @@
-# matching/__init__.py
+# pipeline/
 # ─────────────────────────────────────────────────────────────
 # Module 3 – Milestone 3: Target Matching
-# Public surface of the matching sub-package.
+# Sub-package init for the pipeline integration layer.
 # ─────────────────────────────────────────────────────────────
-
-from matching.search_state import SearchState  # noqa: F401 — re-exported
-
-__all__ = ["SearchState"]
