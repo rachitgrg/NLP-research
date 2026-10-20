@@ -198,3 +198,22 @@ class TestTTSSpeakerRepeatCadence:
         assert sp.speak("Bottle is on your left.") is True
         clock[0] += 1.3   # > 0.6 * cooldown_s
         assert sp.speak("Bottle is straight ahead.") is True
+
+
+class TestSapiLeadSilence:
+    """Leading silence protects the first word from Bluetooth wake-up clipping."""
+
+    def test_silence_prefix_and_xml_flag(self):
+        from audio_feedback.tts_speaker import _SapiEngine
+        text, flags = _SapiEngine.prepare("Bottle, left.", 250)
+        assert text == '<silence msec="250"/>Bottle, left.'
+        assert flags == 8
+
+    def test_special_characters_are_escaped(self):
+        from audio_feedback.tts_speaker import _SapiEngine
+        text, _ = _SapiEngine.prepare("Salt & pepper <jar>", 250)
+        assert text.endswith("Salt &amp; pepper &lt;jar&gt;")
+
+    def test_zero_disables_xml(self):
+        from audio_feedback.tts_speaker import _SapiEngine
+        assert _SapiEngine.prepare("Bottle, left.", 0) == ("Bottle, left.", 0)

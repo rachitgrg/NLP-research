@@ -30,9 +30,11 @@ import threading
 import time
 from enum import IntEnum
 from typing import Any, Callable, Optional
+from xml.sax.saxutils import escape as xml_escape
 
 from config.config import (
     TTS_ENABLED,
+    TTS_LEAD_SILENCE_MS,
     TTS_REPEAT_COOLDOWN_S,
     TTS_SPEECH_COOLDOWN_S,
     TTS_SPEECH_RATE,
@@ -49,7 +51,10 @@ _SILENT_SPEECH_THRESHOLD_S = 0.15
 class _SapiEngine:
     """Windows SAPI5 voice; must be created and used in the same thread."""
 
-    def __init__(self, rate_wpm: int, volume: float) -> None:
+    _SVSF_IS_XML = 8  # SpeechVoiceSpeakFlags: text contains SAPI XML
+
+    def __init__(self, rate_wpm: int, volume: float, lead_silence_ms: int = 0) -> None:
+        self._lead_silence_ms = max(0, lead_silence_ms)
         import comtypes  # type: ignore
         import comtypes.client  # type: ignore
 
@@ -61,7 +66,21 @@ class _SapiEngine:
         self._voice.Volume = max(0, min(100, int(volume * 100)))
 
     def speak(self, text: str) -> None:
-        self._voice.Speak(text, 0)  # 0 = synchronous: returns after speaking
+        # Synchronous (no async flag): returns after speaking.
+        self._voice.Speak(*self.prepare(text, self._lead_silence_ms))
+
+    @classmethod
+    def prepare(cls, text: str, lead_silence_ms: int) -> tuple[str, int]:
+        """
+        Return (text, flags) for SpVoice.Speak.
+
+        Bluetooth headsets and some sound cards wake their audio link only
+        when sound starts, clipping the first ~100-300 ms ("ottle" for
+        "bottle").  A leading SAPI <silence/> absorbs that wake-up time.
+        """
+        if lead_silence_ms <= 0:
+            return text, 0
+        return f'<silence msec="{lead_silence_ms}"/>{xml_escape(text)}', cls._SVSF_IS_XML
 
     def close(self) -> None:
         self._voice = None
@@ -233,9 +252,12 @@ class TTSSpeaker:
         if self.use_mock:
             return None
 
-        engine_cls = _SapiEngine if sys.platform == "win32" else _Pyttsx3Engine
         try:
-            return engine_cls(self.speech_rate, self.speech_volume)
+            if sys.platform == "win32":
+                engine_cls = _SapiEngine
+                return _SapiEngine(self.speech_rate, self.speech_volume, TTS_LEAD_SILENCE_MS)
+            engine_cls = _Pyttsx3Engine
+            return _Pyttsx3Engine(self.speech_rate, self.speech_volume)
         except Exception as exc:
             logger.error(
                 "Speech output unavailable (%s: %s). Guidance will be printed only.",
