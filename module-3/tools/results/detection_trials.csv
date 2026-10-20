@@ -1,0 +1,11 @@
+timestamp,scene,target,model,frames,fps,person_frames_pct,raw_rate_at_base_pct,raw_rate_at_target_pct,old_found_pct,new_found_pct,old_lost_events,new_lost_events,old_longest_gap_s,new_longest_gap_s,median_conf,min_conf
+2026-10-20 19:26:22,alone plain,bottle,best.pt,451,30.1,0.0,100.0,100.0,100.0,99.8,0,0,0.0,0.02,0.959,0.951
+2026-10-20 19:27:40,held at face,bottle,best.pt,450,30.0,100.0,0.7,15.3,0.7,48.2,1,6,7.62,2.15,0.212,0.058
+2026-10-20 19:28:25,person behind,bottle,best.pt,451,30.1,96.9,95.1,98.9,95.1,99.8,9,0,0.26,0.02,0.82,0.184
+2026-10-20 19:29:40,far 2m,bottle,best.pt,450,30.0,0.0,81.6,91.6,81.6,99.8,22,0,0.35,0.03,0.581,0.091
+2026-10-20 19:31:13,dim light,bottle,best.pt,451,30.1,40.6,84.5,87.1,84.5,95.1,5,2,0.9,0.45,0.785,0.086
+2026-10-20 19:35:37,no bottle,bottle,best.pt,450,30.0,100.0,0.0,0.0,0.0,0.0,0,0,14.98,14.98,0.0,0.0
+2026-10-20 19:37:49,moving slowly without person face,bottle,best.pt,450,30.0,76.4,99.3,99.6,99.3,99.8,1,0,0.1,0.05,0.931,0.312
+2026-10-20 19:38:29,moving slowly with person face,bottle,best.pt,451,30.1,100.0,69.8,76.9,69.8,86.5,12,2,2.1,1.4,0.697,0.053
+2026-10-20 19:43:52,held at face,bottle,yolov8n.pt,451,30.1,100.0,0.0,6.7,0.0,27.5,0,3,14.98,6.96,0.172,0.05
+2026-10-20 19:44:24,moving slowly with person face,bottle,yolov8n.pt,451,30.1,100.0,42.8,53.9,42.8,81.4,18,3,3.53,1.46,0.43,0.05
