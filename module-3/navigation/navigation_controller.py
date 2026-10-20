@@ -102,6 +102,8 @@ class NavigationController:
         # Step 2: Handle unsupported classes
         if reason == "unsupported_class":
             self.state = NavigationState.UNSUPPORTED
+            # Nothing to search for — end the session after this message.
+            self.finish_reason = "unsupported"
             instruction = f"{self.target_name.capitalize()} is not detectable by the vision model."
             self.speaker.speak(instruction, priority=SpeechPriority.EMERGENCY)
             empty_obstacle = ObstacleReport(

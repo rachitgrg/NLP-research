@@ -185,3 +185,9 @@ def test_reset_clears_finish_reason():
     assert nc.finish_reason == "arrived"
     nc.reset()
     assert nc.finish_reason is None
+
+
+def test_unsupported_target_finishes_session():
+    nc = NavigationController("watch", speaker=TTSSpeaker(enabled=True, use_mock=True))
+    nc.process_frame([], 640, 480)
+    assert nc.finish_reason == "unsupported"
