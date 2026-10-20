@@ -18,6 +18,7 @@ import time
 from typing import Any, Optional
 
 from audio_feedback.tts_speaker import SpeechPriority, TTSSpeaker
+from config.config import ARRIVAL_CONFIRM_FRAMES, SEARCH_TIMEOUT_S
 from guidance.obstacle_detector import ObstacleDetector, ObstacleReport
 from guidance.spatial_locator import SpatialLocation, SpatialLocator
 from matching.target_matcher import TargetMatcher
@@ -39,6 +40,8 @@ class NavigationController:
         obstacle_detector: Optional[ObstacleDetector] = None,
         speaker: Optional[TTSSpeaker] = None,
         searching_cooldown_s: float = 3.5,
+        arrival_confirm_frames: int = ARRIVAL_CONFIRM_FRAMES,
+        search_timeout_s: float = SEARCH_TIMEOUT_S,
     ) -> None:
         self.raw_target = target_name
         self.target_name = target_name.strip().lower()
@@ -49,6 +52,8 @@ class NavigationController:
         self.speaker = speaker or TTSSpeaker(use_mock=True)
 
         self.searching_cooldown_s = searching_cooldown_s
+        self.arrival_confirm_frames = max(1, arrival_confirm_frames)
+        self.search_timeout_s = search_timeout_s
 
         # Tracking state
         self.state: NavigationState = NavigationState.SEARCHING
@@ -56,6 +61,12 @@ class NavigationController:
         self.last_search_prompt_time: float = 0.0
         self.ever_found: bool = False
         self.has_arrived: bool = False
+
+        # Session completion: None while searching, else "arrived" / "timeout".
+        # The camera loop ends the session once this is set.
+        self.finish_reason: Optional[str] = None
+        self._arrival_streak: int = 0
+        self._session_start_time: Optional[float] = None
 
     def process_frame(
         self,
@@ -80,6 +91,8 @@ class NavigationController:
         NavigationStep
         """
         now = time.monotonic()
+        if self._session_start_time is None:
+            self._session_start_time = now
 
         # Step 1: Match target object
         match_result = self.matcher.match(self.target_name, detections)
@@ -104,6 +117,27 @@ class NavigationController:
                 is_arrived=False,
             )
 
+        # Step 2b: Search timeout, measured from the last sighting (or session
+        # start).  Checked before obstacles so a persistent obstacle (e.g. a
+        # person in view) cannot keep the search alive forever.
+        if not is_found and self.search_timeout_s > 0:
+            last_seen = self.last_seen_target_time if self.ever_found else self._session_start_time
+            if (now - last_seen) >= self.search_timeout_s:
+                self.finish_reason = "timeout"
+                instruction = f"Could not find the {self.target_name}. Stopping the search."
+                self.speaker.speak(instruction, priority=SpeechPriority.ARRIVAL, force=True)
+                return NavigationStep(
+                    state=self.state,
+                    target_name=self.target_name,
+                    target_found=False,
+                    spoken_instruction=instruction,
+                    spatial_location=None,
+                    obstacle_report=ObstacleReport(
+                        has_hazard=False, primary_hazard=None, hazards=[], recommended_detour=None
+                    ),
+                    is_arrived=False,
+                )
+
         # Step 3: Evaluate obstacles in path
         matched_class = match_result.get("matched_class")
         obstacle_report = self.obstacle_detector.evaluate(
@@ -118,7 +152,9 @@ class NavigationController:
             hazard = obstacle_report.primary_hazard
             self.state = NavigationState.OBSTRUCTED
             instruction = hazard.warning_text
-            self.speaker.speak(instruction, priority=SpeechPriority.EMERGENCY, force=True)
+            # Not forced: called every frame while the hazard persists; the
+            # speaker repeats identical text only after its cooldown.
+            self.speaker.speak(instruction, priority=SpeechPriority.EMERGENCY)
 
             # If target is also visible, compute its location for reporting
             target_location: Optional[SpatialLocation] = None
@@ -148,9 +184,13 @@ class NavigationController:
             if spatial_loc.is_reached:
                 self.state = NavigationState.ARRIVED
                 self.has_arrived = True
+                self._arrival_streak += 1
                 instruction = f"{self.target_name.capitalize()} is directly in front of you. Stop and reach out."
-                self.speaker.speak(instruction, priority=SpeechPriority.ARRIVAL, force=True)
+                self.speaker.speak(instruction, priority=SpeechPriority.ARRIVAL)
+                if self._arrival_streak >= self.arrival_confirm_frames:
+                    self.finish_reason = "arrived"
             else:
+                self._arrival_streak = 0
                 self.state = NavigationState.GUIDING
                 instruction = self.locator.format_guidance(spatial_loc, self.target_name)
                 self.speaker.speak(instruction, priority=SpeechPriority.GUIDANCE)
@@ -166,6 +206,7 @@ class NavigationController:
             )
 
         # Step 5: Handle Target Not Found
+        self._arrival_streak = 0
         if self.ever_found:
             self.state = NavigationState.LOST
             instruction = f"{self.target_name.capitalize()} lost from view. Please pan camera slowly."
@@ -198,4 +239,7 @@ class NavigationController:
         self.last_search_prompt_time = 0.0
         self.ever_found = False
         self.has_arrived = False
+        self.finish_reason = None
+        self._arrival_streak = 0
+        self._session_start_time = None
         self.speaker.clear()

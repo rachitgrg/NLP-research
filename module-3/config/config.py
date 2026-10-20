@@ -36,8 +36,18 @@ INFERENCE_IMG_SIZE: int = int(os.environ.get("INFERENCE_IMG_SIZE", "640"))
 # "cpu"  — always works; safe default for any laptop.
 # "cuda" — requires a CUDA-capable GPU + torch-cuda installed.
 # "mps"  — Apple Silicon GPU (macOS only).
-# RTX 3050 detected — defaulting to cuda for real-time performance.
-INFERENCE_DEVICE: str = os.environ.get("INFERENCE_DEVICE", "cuda")
+# Default: "cuda" if this Python's torch build can see a GPU, otherwise
+# "cpu".  (A CPU-only torch wheel cannot use the RTX 3050 even though the
+# GPU exists, and requesting "cuda" there makes YOLO loading fail.)
+def _default_device() -> str:
+    try:
+        import torch  # type: ignore
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except ImportError:
+        return "cpu"
+
+
+INFERENCE_DEVICE: str = os.environ.get("INFERENCE_DEVICE") or _default_device()
 
 # ── Camera ────────────────────────────────────────────────────
 # Index of the webcam to open (0 = default/built-in camera).
@@ -82,6 +92,16 @@ ZONE_FAR_RIGHT_THRESHOLD: float = float(os.environ.get("ZONE_FAR_RIGHT_THRESHOLD
 PROXIMITY_FAR_THRESHOLD: float = float(os.environ.get("PROXIMITY_FAR_THRESHOLD", "0.05"))
 PROXIMITY_APPROACHING_THRESHOLD: float = float(os.environ.get("PROXIMITY_APPROACHING_THRESHOLD", "0.22"))
 ARRIVAL_AREA_THRESHOLD: float = float(os.environ.get("ARRIVAL_AREA_THRESHOLD", "0.22"))
+
+# ── Session control ───────────────────────────────────────────
+# Consecutive "reached" frames needed before the search ends as ARRIVED
+# (filters out single-frame detection glitches).
+ARRIVAL_CONFIRM_FRAMES: int = int(os.environ.get("ARRIVAL_CONFIRM_FRAMES", "5"))
+# End the search if the target has not been seen for this many seconds
+# (0 disables the timeout).
+SEARCH_TIMEOUT_S: float = float(os.environ.get("SEARCH_TIMEOUT_S", "60"))
+# Stop the camera loop after this many consecutive failed frame reads.
+MAX_CONSECUTIVE_READ_FAILURES: int = int(os.environ.get("MAX_CONSECUTIVE_READ_FAILURES", "50"))
 
 # ── Milestone 5 — Audio TTS Feedback ──────────────────────────
 # Speech pacing and voice synthesis parameters

@@ -44,6 +44,16 @@ class TestConfigDefaults:
         import config.config as cfg
         assert isinstance(cfg.INFERENCE_DEVICE, str)
 
+    def test_default_device_matches_torch_availability(self):
+        """Default device must be usable by the installed torch build."""
+        import config.config as cfg
+        try:
+            import torch
+            expected = "cuda" if torch.cuda.is_available() else "cpu"
+        except ImportError:
+            expected = "cpu"
+        assert cfg._default_device() == expected
+
     def test_quit_key_is_int(self):
         import config.config as cfg
         assert isinstance(cfg.QUIT_KEY, int)

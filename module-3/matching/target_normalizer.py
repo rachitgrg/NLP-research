@@ -28,6 +28,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable, Mapping
 
 # ── COCO-80 class set (YOLOv8n pretrained) ────────────────────
 # Full list of the 80 COCO categories that YOLOv8n can detect.
@@ -159,18 +160,37 @@ def normalize_target(raw: str) -> str:
     return cleaned
 
 
-def is_supported_class(target: str) -> bool:
+def is_supported_class(
+    target: str,
+    class_names: Iterable[str] | Mapping[int, str] | None = None,
+) -> bool:
     """
-    Return True if target (already normalized) is a COCO-80
-    class that YOLOv8n can detect.
+    Return True if target (already normalized) is a class the
+    detector can actually output.
 
     Parameters
     ----------
     target : str
         A normalized target string (output of normalize_target).
+    class_names : iterable of str, or dict {id: name}, optional
+        The loaded model's class vocabulary (e.g.
+        ``YOLODetector.class_names``).  The fine-tuned model knows
+        only 15 classes, so checking against COCO-80 would accept
+        targets such as "clock" that it can never detect.
+        Defaults to COCO-80 when not given.
 
     Returns
     -------
     bool
     """
-    return target in COCO_CLASSES
+    return target in _as_class_set(class_names)
+
+
+def _as_class_set(
+    class_names: Iterable[str] | Mapping[int, str] | None,
+) -> frozenset[str]:
+    """Normalise a model vocabulary into a lowercase frozenset."""
+    if class_names is None:
+        return COCO_CLASSES
+    names = class_names.values() if isinstance(class_names, Mapping) else class_names
+    return frozenset(str(n).lower().strip() for n in names)

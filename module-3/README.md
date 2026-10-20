@@ -129,11 +129,14 @@ module-3/
 
 | Property | Value |
 |---|---|
-| Model | YOLOv8n (pretrained on COCO) |
-| Weights file | `yolov8n.pt` (~6 MB) |
-| Dataset | COCO (80 object categories) |
-| Download | Automatic on first run |
-| Inference | CPU (default) — also supports CUDA / MPS |
+| Default model | YOLOv8n **fine-tuned on 15 indoor classes** (Module 2, `train.py`) |
+| Weights file | `../module-2/runs/train/weights/best.pt` (local only, not in git) |
+| Classes | person, chair, dining table, couch, bed, bottle, cup, bowl, laptop, cell phone, book, tv, backpack, umbrella, suitcase |
+| Alternative | `--model yolov8n.pt` — stock COCO model, 80 classes (auto-downloaded) |
+| Inference | `cuda` if the installed torch build sees a GPU, otherwise `cpu` (override with `--device` / `INFERENCE_DEVICE`) |
+
+Whether a requested target is "supported" is decided from the **loaded model's own class list**,
+so with the default 15-class model `clock` or `remote` are reported as unsupported.
 
 ---
 
@@ -219,10 +222,12 @@ Each detected object is represented as a plain Python dict:
 | `motorbike` | `motorcycle` |
 | `bike` | `bicycle` |
 
-### COCO-80 Limitation
+### Vocabulary Limitation
 
-YOLOv8n is pretrained on COCO and can **only** detect its 80 classes.
-Objects **not** detectable by this model (returned as `unsupported_class`):
+The detector can only find the classes it was trained on (15 for the default fine-tuned
+model, 80 for stock `yolov8n.pt`). Objects detectable by **neither** model
+(returned as `unsupported_class`) — see `IMPLEMENTATION_ROADMAP.md` for the planned
+open-vocabulary fallback:
 
 | User says | Why not supported |
 |---|---|
@@ -239,25 +244,18 @@ Objects **not** detectable by this model (returned as `unsupported_class`):
 
 ## Setup
 
-### Step 1 — Create and activate a virtual environment
+**Recommended:** use the unified environment at the repository root (`.venv`, CUDA torch),
+which contains both Module 1 (voice) and Module 3 (vision) dependencies — required for
+`--voice` and `assistant.py`. See the root `README.md` → *Setup*.
 
 ```powershell
-# From inside module-3/
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
-
-### Step 2 — Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Step 3 — Run the pipeline
-
-```bash
+# From inside module-3/, using the root environment
+..\.venv\Scripts\Activate.ps1
 python main.py
 ```
+
+The older module-local `module-3/venv` (CPU-only torch, no voice packages) still works for
+vision-only runs and the test suite.
 
 ---
 
@@ -329,7 +327,7 @@ python main.py --voice --duration 8
 **Unsupported class:**
 ```
   Target   : watch
-  Status   : UNSUPPORTED (not a COCO-80 class — YOLOv8n cannot detect this)
+  Status   : UNSUPPORTED (not one of the loaded model's classes)
 ```
 
 ### M3 visual overlay
@@ -346,12 +344,20 @@ When `--target` is supplied, the live video window shows:
 
 | Flag | Default | Description |
 |---|---|---|\
-| `--model PATH` | `yolov8n.pt` | Path to YOLO weights |
+| `--model PATH` | fine-tuned `best.pt` | Path to YOLO weights |
 | `--conf FLOAT` | `0.40` | Confidence threshold |
 | `--imgsz INT` | `640` | Inference image size (pixels) |
-| `--device DEVICE` | `cpu` | Inference device: `cpu`, `cuda`, `mps` |
+| `--device DEVICE` | auto (`cuda` if available, else `cpu`) | Inference device: `cpu`, `cuda`, `mps` |
 | `--camera INDEX` | `0` | Webcam device index |
 | `--target OBJECT` | *(none)* | M3: object to search for (e.g. `bottle`, `phone`) |
+| `--voice` | off | Get the target from the microphone via Module 1 |
+| `--navigate` | off | Spoken spatial guidance, obstacles, arrival / timeout |
+| `--no-tts` | off | Print guidance instead of speaking it |
+
+**Stopping a session:** press **ENTER** in the terminal (works without window focus), **Q** in
+the video window, or Ctrl+C. In `--navigate` mode the session also ends automatically when the
+target stays "within reach" for `ARRIVAL_CONFIRM_FRAMES` frames, or when it has not been seen
+for `SEARCH_TIMEOUT_S` seconds.
 
 ---
 
@@ -361,13 +367,16 @@ All default values live in [`config/config.py`](config/config.py):
 
 | Config variable | Default | Env variable override |
 |---|---|---|
-| `YOLO_MODEL_PATH` | `"yolov8n.pt"` | `YOLO_MODEL_PATH` |
+| `YOLO_MODEL_PATH` | `../module-2/runs/train/weights/best.pt` | `YOLO_MODEL_PATH` |
 | `CONFIDENCE_THRESHOLD` | `0.40` | `CONFIDENCE_THRESHOLD` |
 | `INFERENCE_IMG_SIZE` | `640` | `INFERENCE_IMG_SIZE` |
-| `INFERENCE_DEVICE` | `"cpu"` | `INFERENCE_DEVICE` |
+| `INFERENCE_DEVICE` | auto (`cuda` if torch sees a GPU, else `cpu`) | `INFERENCE_DEVICE` |
 | `CAMERA_INDEX` | `0` | `CAMERA_INDEX` |
 | `LOG_EVERY_N_FRAMES` | `30` | `LOG_EVERY_N_FRAMES` |
 | `TARGET_STATUS_COOLDOWN_S` | `2.0` | `TARGET_STATUS_COOLDOWN_S` |
+| `ARRIVAL_CONFIRM_FRAMES` | `5` | `ARRIVAL_CONFIRM_FRAMES` |
+| `SEARCH_TIMEOUT_S` | `60` (0 = off) | `SEARCH_TIMEOUT_S` |
+| `MAX_CONSECUTIVE_READ_FAILURES` | `50` | `MAX_CONSECUTIVE_READ_FAILURES` |
 
 ---
 
@@ -380,18 +389,11 @@ pytest tests/ -v
 
 The tests use **mocking** — no camera, no model download, and no GPU are required.
 
-**Test counts:**
-- `test_config.py` — 11 tests (config defaults + env overrides)
-- `test_yolo_detector.py` — 13 tests (detection output, edge cases)
-- `test_visualizer.py` — 8 tests (draw functions + navigation overlay)
-- `test_target_matcher.py` — 26 tests (normalization, matching, schema)
-- `test_spatial_locator.py` — 13 tests (5 horizontal zones, proximity, arrival, clamping)
-- `test_obstacle_detector.py` — 10 tests (corridor hazards, detours, filters)
-- `test_tts_speaker.py` — 9 tests (queue, priority bypass, debouncing, lifecycle)
-- `test_navigation_controller.py` — 8 tests (state machine transitions, guiding, obstacles, arrival)
-- `test_assistive_pipeline.py` — 1 test (complete 5-step user journey simulation)
-- `test_m3_integration.py` — 30 tests (mandatory spec cases + SearchState + Module 1 bridge + full pipeline)
-- **Total: 129 tests (100% passing)**
+Run `pytest tests/ -q` for the current count. Besides the original suites, the tests cover the
+Module 1 bridge (`test_m3_pipeline_bridge.py` — one test is skipped unless Module 1's
+packages are installed, i.e. outside the root `.venv`), the camera loop's session control
+(`test_camera_loop.py`, fake camera), speech-flood protection, arrival confirmation, the search
+timeout, and model-vocabulary support checks.
 
 ---
 

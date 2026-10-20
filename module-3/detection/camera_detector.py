@@ -18,6 +18,8 @@
 from __future__ import annotations
 
 import logging
+import sys
+import threading
 import time
 from typing import Any
 
@@ -29,6 +31,7 @@ from config.config import (
     CAMERA_INDEX,
     FONT_SCALE,
     LOG_EVERY_N_FRAMES,
+    MAX_CONSECUTIVE_READ_FAILURES,
     QUIT_KEY,
     TARGET_STATUS_COOLDOWN_S,
 )
@@ -138,16 +141,34 @@ def run_camera_loop(
         print(f"  Target object              : {raw_target!r}")
     else:
         print(f"  Mode                       : ALL DETECTIONS (M2)")
-    print("  Press  Q  in the video window to quit.")
+    print("  Press  Q  in the video window, or ENTER in this terminal, to quit.")
     print("─" * 55 + "\n")
+
+    cancel_event = _start_console_cancel_listener()
+    read_failures = 0
 
     try:
         while True:
+            if cancel_event.is_set():
+                print("\nENTER pressed — stopping detection loop.")
+                if nav_controller is not None:
+                    nav_controller.speaker.speak("Search cancelled.", force=True)
+                    nav_controller.speaker.wait_until_idle(timeout_s=3.0)
+                break
+
             # ── Capture frame ─────────────────────────────────
             ret, frame = cap.read()
             if not ret or frame is None:
+                read_failures += 1
+                if read_failures >= MAX_CONSECUTIVE_READ_FAILURES:
+                    logger.error(
+                        "Camera returned no frames %d times in a row — stopping.", read_failures
+                    )
+                    break
                 logger.warning("Failed to read frame from camera. Retrying...")
+                time.sleep(0.05)
                 continue
+            read_failures = 0
 
             frame_count += 1
             h, w = frame.shape[:2]
@@ -215,6 +236,14 @@ def run_camera_loop(
                     last_status_print_t = now
                     last_printed_status = current_status
 
+            # ── Session finished (arrived / timed out) ───────
+            if nav_controller is not None and nav_controller.finish_reason:
+                print(f"\n  [NAV] Session finished: {nav_controller.finish_reason}")
+                # Let the final message ("…directly in front of you" /
+                # "Could not find…") finish before the window closes.
+                nav_controller.speaker.wait_until_idle(timeout_s=5.0)
+                break
+
             # ── Quit on Q key or window close ─────────────────
             key = cv2.waitKey(1) & 0xFF
             if key == QUIT_KEY:
@@ -235,6 +264,29 @@ def run_camera_loop(
         print("\nCamera resources released. Goodbye!\n")
 
 
+def _start_console_cancel_listener() -> threading.Event:
+    """
+    Return an Event that is set when the user presses ENTER in the terminal.
+
+    The Q key only works when the OpenCV window has focus, which a blind
+    user cannot easily check; ENTER in the terminal (or Ctrl+C) always works.
+    Skipped when stdin is not interactive (e.g. under pytest).
+    """
+    event = threading.Event()
+    if not sys.stdin or not sys.stdin.isatty():
+        return event
+
+    def _listen() -> None:
+        try:
+            sys.stdin.readline()
+        except (OSError, ValueError):
+            return
+        event.set()
+
+    threading.Thread(target=_listen, daemon=True, name="ConsoleCancel").start()
+    return event
+
+
 def _print_target_status(match_result: dict[str, Any]) -> None:
     """Print a concise target-match status block to the terminal."""
     target = match_result["target"]
@@ -243,7 +295,7 @@ def _print_target_status(match_result: dict[str, Any]) -> None:
     if reason == "unsupported_class":
         print(
             f"\n  Target   : {target}\n"
-            f"  Status   : UNSUPPORTED (not a COCO-80 class — YOLOv8n cannot detect this)\n"
+            f"  Status   : UNSUPPORTED (not one of the loaded model's classes)\n"
         )
         return
 

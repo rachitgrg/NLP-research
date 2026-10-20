@@ -1,0 +1,33 @@
+# requirements.txt — unified environment for the integrated assistant
+# (Module 1 voice + Module 3 vision in ONE Python process).
+#
+# Versions are pinned to the ones already working in module-1/venv and
+# module-3/venv. Python 3.13 (64-bit).
+#
+# Setup (Windows PowerShell, from the repo root):
+#   python -m venv .venv
+#   .\.venv\Scripts\python -m pip install torch==2.11.0 torchvision --index-url https://download.pytorch.org/whl/cu128
+#   .\.venv\Scripts\python -m pip install -r requirements.txt
+#   .\.venv\Scripts\python -m spacy download en_core_web_sm
+#
+# torch is installed separately (step 2) so pip gets the CUDA build for the
+# RTX 3050 instead of the CPU-only build from PyPI.
+
+# ── Vision (Module 3) ─────────────────────────────────────────
+ultralytics==8.4.172
+opencv-python==5.0.0.93
+pyttsx3==2.99
+
+# ── Voice (Module 1) ──────────────────────────────────────────
+sarvamai==0.1.32
+python-dotenv==1.2.3
+spacy==3.8.16
+sounddevice==0.5.6
+soundfile==0.14.0
+faster-whisper==1.2.1   # offline ASR (evaluation + future fallback)
+jiwer==4.0.0            # WER metric for evaluation scripts
+
+# ── Shared ────────────────────────────────────────────────────
+numpy==2.5.3
+matplotlib==3.11.2
+pytest==9.1.1

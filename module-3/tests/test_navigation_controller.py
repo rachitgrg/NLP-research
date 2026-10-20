@@ -113,3 +113,75 @@ class TestNavigationControllerStates:
         assert controller.state == NavigationState.SEARCHING
         assert controller.target_name == "cup"
         assert controller.ever_found is False
+
+
+def test_persistent_hazard_does_not_flood_speech_queue():
+    """60 frames (~3 s) with the same hazard must queue at most one warning."""
+    speaker = TTSSpeaker(enabled=True, cooldown_s=2.0, use_mock=True)
+    speaker.stop()  # keep items in the queue so we can count them
+    nc = NavigationController("bottle", speaker=speaker)
+    dets = [{"class_name": "chair", "class_id": 1, "confidence": 0.9, "bbox": [200, 200, 440, 470]}]
+    for _ in range(60):
+        step = nc.process_frame(dets, 640, 480)
+    assert step.state == NavigationState.OBSTRUCTED
+    assert speaker._queue.qsize() <= 1
+
+
+# ── Session completion (arrival confirmation / timeout) ─────────
+
+_BIG_BOTTLE = [{"class_name": "bottle", "class_id": 5, "confidence": 0.9, "bbox": [100, 50, 540, 450]}]
+_PERSON_IN_PATH = [{"class_name": "person", "class_id": 0, "confidence": 0.9, "bbox": [180, 150, 460, 480]}]
+
+
+def _controller(**kwargs) -> NavigationController:
+    return NavigationController("bottle", speaker=TTSSpeaker(enabled=True, use_mock=True), **kwargs)
+
+
+def test_arrival_requires_consecutive_frames():
+    nc = _controller(arrival_confirm_frames=3)
+    nc.process_frame(_BIG_BOTTLE, 640, 480)
+    nc.process_frame(_BIG_BOTTLE, 640, 480)
+    assert nc.finish_reason is None
+    nc.process_frame(_BIG_BOTTLE, 640, 480)
+    assert nc.finish_reason == "arrived"
+
+
+def test_arrival_streak_resets_when_target_missing():
+    nc = _controller(arrival_confirm_frames=2)
+    nc.process_frame(_BIG_BOTTLE, 640, 480)
+    nc.process_frame([], 640, 480)
+    nc.process_frame(_BIG_BOTTLE, 640, 480)
+    assert nc.finish_reason is None
+
+
+def test_search_times_out(monkeypatch):
+    import navigation.navigation_controller as mod
+    clock = [1000.0]
+    monkeypatch.setattr(mod.time, "monotonic", lambda: clock[0])
+    nc = _controller(search_timeout_s=10)
+    nc.process_frame([], 640, 480)
+    clock[0] += 9
+    nc.process_frame([], 640, 480)
+    assert nc.finish_reason is None
+    clock[0] += 2
+    nc.process_frame([], 640, 480)
+    assert nc.finish_reason == "timeout"
+
+
+def test_timeout_not_blocked_by_persistent_obstacle(monkeypatch):
+    import navigation.navigation_controller as mod
+    clock = [1000.0]
+    monkeypatch.setattr(mod.time, "monotonic", lambda: clock[0])
+    nc = _controller(search_timeout_s=10)
+    nc.process_frame(_PERSON_IN_PATH, 640, 480)
+    clock[0] += 11
+    nc.process_frame(_PERSON_IN_PATH, 640, 480)
+    assert nc.finish_reason == "timeout"
+
+
+def test_reset_clears_finish_reason():
+    nc = _controller(arrival_confirm_frames=1)
+    nc.process_frame(_BIG_BOTTLE, 640, 480)
+    assert nc.finish_reason == "arrived"
+    nc.reset()
+    assert nc.finish_reason is None

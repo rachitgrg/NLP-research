@@ -79,3 +79,34 @@ class TestTTSSpeakerLifecycle:
         if thread:
             assert not thread.is_alive()
         assert mock_speaker._worker_thread is None
+
+
+class TestTTSSpeakerFloodProtection:
+    """Per-frame repeated messages must not pile up in the queue."""
+
+    def _idle_speaker(self):
+        # Worker stopped so the queue just accumulates what speak() accepts.
+        speaker = TTSSpeaker(enabled=True, cooldown_s=2.0, use_mock=True)
+        speaker.stop()
+        return speaker
+
+    def test_repeated_emergency_not_requeued_within_cooldown(self):
+        speaker = self._idle_speaker()
+        assert speaker.speak("Caution: chair ahead", priority=SpeechPriority.EMERGENCY) is True
+        for _ in range(30):
+            speaker.speak("Caution: chair ahead", priority=SpeechPriority.EMERGENCY)
+        assert speaker._queue.qsize() == 1
+
+    def test_new_guidance_replaces_stale_pending_guidance(self):
+        speaker = self._idle_speaker()
+        speaker.speak("Turn left", priority=SpeechPriority.GUIDANCE, force=True)
+        speaker.speak("Turn right", priority=SpeechPriority.GUIDANCE, force=True)
+        assert speaker._queue.qsize() == 1
+        assert speaker._queue.get_nowait()[2] == "Turn right"
+
+    def test_guidance_does_not_drop_pending_emergency(self):
+        speaker = self._idle_speaker()
+        speaker.speak("Caution: chair ahead", priority=SpeechPriority.EMERGENCY)
+        speaker.speak("Turn right", priority=SpeechPriority.GUIDANCE, force=True)
+        texts = [speaker._queue.get_nowait()[2] for _ in range(speaker._queue.qsize())]
+        assert texts == ["Caution: chair ahead", "Turn right"]

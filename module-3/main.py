@@ -248,12 +248,7 @@ def main() -> None:
     if args.target:
         # Option A — text target supplied directly
         raw_target = args.target
-        normalized = normalize_target(raw_target)
-        supported  = is_supported_class(normalized)
-        print(f"  Target     : {raw_target!r}  ->  normalized: {normalized!r}", end="")
-        if not supported:
-            print("  WARNING: NOT a COCO-80 class (will show as UNSUPPORTED)", end="")
-        print()
+        print(f"  Target     : {raw_target!r}  ->  normalized: {normalize_target(raw_target)!r}")
 
     elif args.voice:
         # Option B — voice input via Module 1
@@ -266,12 +261,7 @@ def main() -> None:
                 "         Falling back to M2 detection-only mode.\n"
             )
         else:
-            normalized = normalize_target(raw_target)
-            supported  = is_supported_class(normalized)
-            print(f"  Target     : {raw_target!r}  ->  normalized: {normalized!r}", end="")
-            if not supported:
-                print("  WARNING: NOT a COCO-80 class (will show as UNSUPPORTED)", end="")
-            print()
+            print(f"  Target     : {raw_target!r}  ->  normalized: {normalize_target(raw_target)!r}")
 
     print()
 
@@ -292,6 +282,14 @@ def main() -> None:
         sys.exit(1)
 
     print("Model ready.\n")
+
+    # Support depends on the LOADED model's vocabulary (15 classes for the
+    # fine-tuned model, 80 for stock yolov8n.pt), not on COCO-80.
+    if raw_target and not is_supported_class(normalize_target(raw_target), detector.class_names):
+        print(
+            f"  WARNING: {normalize_target(raw_target)!r} is not one of the loaded model's "
+            f"{len(detector.class_names)} classes (will show as UNSUPPORTED)\n"
+        )
 
     # ── M3/M4/M5: initialise navigation controller or target matcher ──
     target_matcher = None
@@ -314,13 +312,13 @@ def main() -> None:
             speaker = TTSSpeaker(enabled=not args.no_tts)
             nav_controller = NavigationController(
                 target_name=nav_target,
-                matcher=TargetMatcher(),
+                matcher=TargetMatcher(supported_classes=detector.class_names),
                 locator=SpatialLocator(),
                 obstacle_detector=ObstacleDetector(),
                 speaker=speaker,
             )
         else:
-            target_matcher = TargetMatcher()
+            target_matcher = TargetMatcher(supported_classes=detector.class_names)
 
     # ── Start live camera + detection loop ─────────────────────
     try:

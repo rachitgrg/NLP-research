@@ -98,8 +98,25 @@ def _try_import_module1() -> None:
         except ImportError:
             pass  # python-dotenv not installed — rely on shell env vars
 
-        from pipeline.hearing_pipeline import HearingPipeline  # type: ignore
-        _HearingPipeline = HearingPipeline
+        # Module 1 and Module 3 both have a top-level package named
+        # "pipeline", so `from pipeline.hearing_pipeline import ...` would
+        # resolve to THIS package and fail.  Load Module 1's file directly
+        # under a unique module name instead.
+        import importlib.util
+
+        hp_path = module1_root / "pipeline" / "hearing_pipeline.py"
+        spec = importlib.util.spec_from_file_location("module1_hearing_pipeline", hp_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"Cannot load {hp_path}")
+        hp_module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = hp_module
+        try:
+            spec.loader.exec_module(hp_module)
+        except BaseException:
+            sys.modules.pop(spec.name, None)
+            raise
+
+        _HearingPipeline = hp_module.HearingPipeline
         MODULE1_AVAILABLE = True
         logger.info("Module 1 (HearingPipeline) imported successfully.")
     except ImportError as exc:

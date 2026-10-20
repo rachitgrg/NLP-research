@@ -34,6 +34,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from matching.target_normalizer import is_supported_class, normalize_target
@@ -63,6 +64,14 @@ class TargetMatcher:
         # result["found"]      -> True
         # result["confidence"] -> 0.86
     """
+
+    def __init__(
+        self,
+        supported_classes: Iterable[str] | Mapping[int, str] | None = None,
+    ) -> None:
+        # Vocabulary of the loaded detector (e.g. YOLODetector.class_names).
+        # None keeps the COCO-80 default.
+        self._supported_classes = supported_classes
 
     # ── Result-dict helpers ────────────────────────────────────
 
@@ -149,7 +158,7 @@ class TargetMatcher:
             return self._result_not_found(target or raw_target, reason=None)
 
         # Step 3 — Check COCO-80 support
-        if not is_supported_class(target):
+        if not is_supported_class(target, self._supported_classes):
             return self._result_not_found(target, reason="unsupported_class")
 
         # Step 4 — Handle empty detection list gracefully

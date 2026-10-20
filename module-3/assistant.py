@@ -129,25 +129,11 @@ def run_assistant(
         speaker.stop()
         return
 
-    # Normalize target
     normalized = normalize_target(raw_target)
-    supported = is_supported_class(normalized)
 
-    print(f"\n  Requested Target : {raw_target!r}")
-    print(f"  Normalized Class : {normalized!r}")
-    print(f"  Supported Status : {'YES' if supported else 'NO (unsupported COCO class)'}")
-
-    if not supported:
-        msg = f"{raw_target} is not a supported object for the vision model. Supported objects include bottle, cell phone, cup, laptop, and backpack."
-        speaker.speak(msg, priority=SpeechPriority.EMERGENCY, force=True)
-        print(f"\n[ALERT] {msg}")
-        speaker.stop()
-        return
-
-    # Acknowledge target
-    speaker.speak(f"Looking for {normalized}. Please hold camera steady and scan slowly.")
-
-    # Load YOLO detector
+    # Load YOLO detector first: whether a target is supported depends on
+    # the loaded model's class vocabulary (15 classes for the fine-tuned
+    # model, 80 for stock yolov8n.pt).
     print("\nLoading YOLO vision model...")
     try:
         detector = YOLODetector(
@@ -164,10 +150,28 @@ def run_assistant(
 
     print("Model ready.")
 
+    supported = is_supported_class(normalized, detector.class_names)
+
+    print(f"\n  Requested Target : {raw_target!r}")
+    print(f"  Normalized Class : {normalized!r}")
+    print(f"  Supported Status : {'YES' if supported else 'NO (not in the loaded model classes)'}")
+
+    if not supported:
+        examples = ", ".join(sorted(detector.class_names.values())[:6])
+        msg = f"{raw_target} is not a supported object for the vision model. Supported objects include {examples}."
+        speaker.speak(msg, priority=SpeechPriority.EMERGENCY, force=True)
+        print(f"\n[ALERT] {msg}")
+        time.sleep(4.0)  # let the message finish before the speaker thread stops
+        speaker.stop()
+        return
+
+    # Acknowledge target
+    speaker.speak(f"Looking for {normalized}. Please hold camera steady and scan slowly.")
+
     # Instantiate navigation controller
     nav_controller = NavigationController(
         target_name=normalized,
-        matcher=TargetMatcher(),
+        matcher=TargetMatcher(supported_classes=detector.class_names),
         locator=SpatialLocator(),
         obstacle_detector=ObstacleDetector(),
         speaker=speaker,
@@ -177,6 +181,7 @@ def run_assistant(
         run_camera_loop(
             detector=detector,
             nav_controller=nav_controller,
+            camera_index=camera_idx,
         )
     finally:
         speaker.stop()

@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -490,23 +491,25 @@ def run_training(args: argparse.Namespace, yaml_path: Path) -> None:
     t_train = time.perf_counter() - t_start
     print(f"\n    Training complete in {t_train/3600:.2f} hours.")
 
-    # ── Validation ────────────────────────────────────────────────────────────
+    # ── Validation + human-readable summary ───────────────────────────────────
+    val_results = _validate_best(args, yaml_path)
+    _write_summary(args, t_train, results, val_results)
+
+
+def _validate_best(args: argparse.Namespace, yaml_path: Path):
+    """Run final validation on best.pt; returns Ultralytics val results or None."""
     print("\n    Running final validation on best.pt...")
     best_weights = RUNS_DIR / "train" / "weights" / "best.pt"
-    if best_weights.exists():
-        best_model = YOLO(str(best_weights))
-        val_results = best_model.val(
-            data=str(yaml_path),
-            imgsz=args.imgsz,
-            device=args.device,
-            verbose=True,
-        )
-    else:
+    if not best_weights.exists():
         print("    ⚠ best.pt not found; skipping separate validation.")
-        val_results = None
-
-    # ── Save human-readable summary ───────────────────────────────────────────
-    _write_summary(args, t_train, results, val_results)
+        return None
+    best_model = YOLO(str(best_weights))
+    return best_model.val(
+        data=str(yaml_path),
+        imgsz=args.imgsz,
+        device=args.device,
+        verbose=True,
+    )
 
 
 def _write_summary(
@@ -688,11 +691,15 @@ def main() -> None:
         if args.safe_mode:
             print(f"         Safe-mode ON: batch=4, workers=2 (less GPU pressure)\n")
         resume_model = YOLO(str(last_pt))
+        t_start = time.perf_counter()
         if args.safe_mode:
             resume_model.train(resume=True, batch=4, workers=2)
         else:
             resume_model.train(resume=True)
-        _write_summary(args, 0.0, None, None)
+        # Training time below covers only the resumed portion of the run.
+        t_train = time.perf_counter() - t_start
+        val_results = _validate_best(args, YAML_PATH)
+        _write_summary(args, t_train, None, val_results)
         print("\n✓ Resume complete.\n")
         return
 

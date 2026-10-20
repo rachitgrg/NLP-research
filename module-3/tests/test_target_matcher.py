@@ -295,3 +295,38 @@ class TestTargetMatcherResultSchema:
         assert result["bbox"]          is None
         assert result["matched_class"] is None
         assert result["reason"]        is None
+
+
+# ─────────────────────────────────────────────────────────────
+# Supported classes follow the LOADED model's vocabulary
+# ─────────────────────────────────────────────────────────────
+
+FINETUNED_15 = {
+    0: "person", 1: "chair", 2: "dining table", 3: "couch", 4: "bed",
+    5: "bottle", 6: "cup", 7: "bowl", 8: "laptop", 9: "cell phone",
+    10: "book", 11: "tv", 12: "backpack", 13: "umbrella", 14: "suitcase",
+}
+
+
+class TestModelVocabulary:
+    def test_clock_supported_by_default_coco80(self):
+        assert is_supported_class("clock") is True
+
+    def test_clock_unsupported_by_15_class_model(self):
+        assert is_supported_class("clock", FINETUNED_15) is False
+
+    def test_bottle_supported_by_15_class_model(self):
+        assert is_supported_class("bottle", FINETUNED_15) is True
+
+    def test_accepts_plain_list_of_names(self):
+        assert is_supported_class("cup", ["Cup", "bowl"]) is True
+
+    def test_matcher_reports_unsupported_for_model_vocab(self):
+        matcher = TargetMatcher(supported_classes=FINETUNED_15)
+        result = matcher.match("remote", [])
+        assert result["found"] is False
+        assert result["reason"] == "unsupported_class"
+
+    def test_matcher_default_still_coco80(self):
+        result = TargetMatcher().match("remote", [])
+        assert result["reason"] is None

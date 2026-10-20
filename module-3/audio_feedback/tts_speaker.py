@@ -117,20 +117,39 @@ class TTSSpeaker:
         now = time.monotonic()
 
         with self._lock:
-            # Debounce check: don't repeat same text within cooldown unless forced or emergency
-            if not force and priority > SpeechPriority.EMERGENCY:
+            if not force:
+                # Never repeat the same text within the cooldown — this applies
+                # to EMERGENCY/ARRIVAL too, which are re-issued on every frame
+                # (~20 FPS) while the condition persists.
                 if cleaned == self._last_spoken_text and (now - self._last_spoken_time) < self.cooldown_s:
                     return False
-                if (now - self._last_spoken_time) < (self.cooldown_s * 0.6):
+                if priority >= SpeechPriority.GUIDANCE and (now - self._last_spoken_time) < (self.cooldown_s * 0.6):
                     # Minimum pause between distinct regular guidance instructions
                     return False
 
             self._last_spoken_text = cleaned
             self._last_spoken_time = now
 
-        # Add to priority queue
-        self._queue.put((int(priority), now, cleaned))
+            # Pending messages of equal or lower importance are now stale
+            # (e.g. an old "turn left" once a newer instruction exists).
+            self._drop_pending(min_priority=int(priority))
+
+            self._queue.put((int(priority), now, cleaned))
         return True
+
+    def _drop_pending(self, min_priority: int) -> None:
+        """Remove queued items whose priority value is >= min_priority."""
+        kept: list[tuple[int, float, str]] = []
+        while True:
+            try:
+                item = self._queue.get_nowait()
+            except queue.Empty:
+                break
+            self._queue.task_done()
+            if item[0] < min_priority:
+                kept.append(item)
+        for item in kept:
+            self._queue.put(item)
 
     def _init_engine(self) -> Any:
         """Initialise the pyttsx3 engine in the worker thread."""
@@ -180,6 +199,13 @@ class TTSSpeaker:
                 engine.stop()
             except Exception:
                 pass
+
+    def wait_until_idle(self, timeout_s: float = 5.0) -> bool:
+        """Block until queued speech has been spoken (or timeout). Returns True if idle."""
+        deadline = time.monotonic() + timeout_s
+        while self._queue.unfinished_tasks and time.monotonic() < deadline:
+            time.sleep(0.05)
+        return not self._queue.unfinished_tasks
 
     def stop(self) -> None:
         """Stop worker thread and clear queue."""

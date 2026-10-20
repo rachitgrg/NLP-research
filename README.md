@@ -13,8 +13,10 @@ It establishes the two foundational pillars required before visual grounding can
 1. **Hearing & Understanding (Linguistic Pipeline)** — Capturing a spoken voice command, transcribing it to English, and extracting the user's intent, the target object, and its attributes using a rule-based NLP parser.
 2. **Dataset Preparation (Vision Foundation)** — Processing, cleaning, and validating the massive COCO 2014 and RefCOCO datasets to create a high-quality referring-expression dataset for future multimodal model training.
 
-> [!WARNING]
-> **Future Work:** Full visual grounding, bounding-box prediction, multimodal spatial reasoning, and real-time camera processing are scheduled for **Stage 2** and are *not* implemented in this repository.
+> [!NOTE]
+> Since Stage 1, `module-3/` adds real-time camera detection, target matching, 5-zone direction guidance and offline speech output, and `module-2/train.py` adds a 15-class fine-tuned YOLOv8n.
+> **Not yet implemented:** free-text visual grounding (e.g. "the red bottle on the left"), detection of objects outside the model's class list (e.g. watch, keys), and metric distance estimation.
+> Current verified status: [PROJECT_AUDIT.md](PROJECT_AUDIT.md). Next steps: [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md).
 
 ---
 
@@ -89,7 +91,36 @@ Measures preservation of information needed by the downstream parser across the 
 
 ---
 
-## 6. Reproducibility
+## 6. Setup & Running the Integrated Assistant
+
+Voice (Module 1) and vision (Module 3) run in **one** Python environment at the repository root.
+Requires Python 3.13 (64-bit) on Windows; an NVIDIA GPU is optional (CPU works, slower).
+
+```powershell
+# One-time setup, from the repository root
+python -m venv .venv
+.\.venv\Scripts\python -m pip install torch==2.11.0 torchvision --index-url https://download.pytorch.org/whl/cu128
+.\.venv\Scripts\python -m pip install -r requirements.txt
+.\.venv\Scripts\python -m spacy download en_core_web_sm
+copy module-1\.env.example module-1\.env   # then put your SARVAM_API_KEY in module-1\.env
+
+# Verify
+.\.venv\Scripts\python -c "import torch; print('CUDA:', torch.cuda.is_available())"
+cd module-1; ..\.venv\Scripts\python -m pytest tests -q; cd ..
+cd module-3; ..\.venv\Scripts\python -m pytest tests -q; cd ..
+
+# Run (from module-3/)
+cd module-3
+..\.venv\Scripts\python main.py --target bottle --navigate   # typed target, spoken guidance
+..\.venv\Scripts\python assistant.py                         # fully voice-driven session
+```
+
+Stop a session with **ENTER** in the terminal, **Q** in the video window, or Ctrl+C. It also stops automatically on arrival or after 60 s without seeing the target.
+The camera must face the same direction as the user (e.g. phone/chest camera) for "left/right" to be correct.
+
+---
+
+## 7. Reproducibility
 
 To reproduce the Stage-1 benchmarking and tests:
 
