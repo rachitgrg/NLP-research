@@ -110,3 +110,91 @@ class TestTTSSpeakerFloodProtection:
         speaker.speak("Turn right", priority=SpeechPriority.GUIDANCE, force=True)
         texts = [speaker._queue.get_nowait()[2] for _ in range(speaker._queue.qsize())]
         assert texts == ["Caution: chair ahead", "Turn right"]
+
+
+class FakeEngine:
+    """Stands in for the SAPI/pyttsx3 backend; records what was spoken."""
+
+    def __init__(self, duration_s: float = 0.2):
+        self.spoken: list[str] = []
+        self.duration_s = duration_s
+        self.closed = False
+
+    def speak(self, text):
+        time.sleep(self.duration_s)
+        self.spoken.append(text)
+
+    def close(self):
+        self.closed = True
+
+
+def _speaker_with_engine(monkeypatch, engine, **kwargs) -> TTSSpeaker:
+    monkeypatch.setattr(TTSSpeaker, "_init_engine", lambda self: engine)
+    return TTSSpeaker(enabled=True, **kwargs)
+
+
+class TestTTSSpeakerEngineDelivery:
+    """Every accepted message must reach the engine — not just the first."""
+
+    def test_successive_direction_changes_all_reach_engine(self, monkeypatch):
+        engine = FakeEngine(duration_s=0.05)
+        sp = _speaker_with_engine(monkeypatch, engine, cooldown_s=0.0, repeat_cooldown_s=0.0)
+        for text in ["Bottle is on your left.", "Bottle is straight ahead.", "Bottle is on your right."]:
+            assert sp.speak(text) is True
+            assert sp.wait_until_idle(timeout_s=2.0)
+        sp.stop()
+        assert engine.spoken == [
+            "Bottle is on your left.", "Bottle is straight ahead.", "Bottle is on your right."
+        ]
+        assert engine.closed
+
+    def test_silent_engine_is_reported(self, monkeypatch, caplog):
+        engine = FakeEngine(duration_s=0.0)  # returns instantly = no audible speech
+        sp = _speaker_with_engine(monkeypatch, engine)
+        with caplog.at_level("WARNING", logger="audio_feedback.tts_speaker"):
+            sp.speak("Bottle is on your left.", force=True)
+            sp.wait_until_idle(timeout_s=2.0)
+        sp.stop()
+        assert "probably not heard" in caplog.text
+
+    def test_engine_init_failure_falls_back_and_logs(self, monkeypatch, caplog):
+        import audio_feedback.tts_speaker as mod
+
+        class Broken:
+            def __init__(self, *a):
+                raise OSError("no audio device")
+
+        monkeypatch.setattr(mod, "_SapiEngine", Broken)
+        monkeypatch.setattr(mod, "_Pyttsx3Engine", Broken)
+        with caplog.at_level("ERROR", logger="audio_feedback.tts_speaker"):
+            sp = TTSSpeaker(enabled=True)
+            assert sp.speak("Hello there", force=True) is True
+            assert sp.wait_until_idle(timeout_s=2.0)
+            sp.stop()
+        assert "Speech output unavailable" in caplog.text
+
+
+class TestTTSSpeakerRepeatCadence:
+    """Unchanged guidance repeats only after the repeat cooldown (A3)."""
+
+    def test_identical_message_waits_for_repeat_cooldown(self, monkeypatch):
+        import audio_feedback.tts_speaker as mod
+        clock = [100.0]
+        monkeypatch.setattr(mod.time, "monotonic", lambda: clock[0])
+        sp = TTSSpeaker(enabled=True, use_mock=True, cooldown_s=2.0, repeat_cooldown_s=4.0)
+        sp.stop()
+        assert sp.speak("Bottle is on your left.") is True
+        clock[0] += 2.5
+        assert sp.speak("Bottle is on your left.") is False   # same text, < 4 s
+        clock[0] += 2.0
+        assert sp.speak("Bottle is on your left.") is True    # 4.5 s later
+
+    def test_new_direction_only_waits_short_gap(self, monkeypatch):
+        import audio_feedback.tts_speaker as mod
+        clock = [100.0]
+        monkeypatch.setattr(mod.time, "monotonic", lambda: clock[0])
+        sp = TTSSpeaker(enabled=True, use_mock=True, cooldown_s=2.0, repeat_cooldown_s=4.0)
+        sp.stop()
+        assert sp.speak("Bottle is on your left.") is True
+        clock[0] += 1.3   # > 0.6 * cooldown_s
+        assert sp.speak("Bottle is straight ahead.") is True

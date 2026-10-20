@@ -94,7 +94,7 @@ flowchart LR
 3. **Expect:**
    - The console shows `Device : cuda`.
    - A video window opens.
-   - With no bottle in view you hear "Bottle not found. Pan camera slowly." about every 3.5 s.
+   - With no bottle in view you hear "Bottle not seen. Turn slowly." about every 4 s.
    - Show a bottle and you hear left/right/straight guidance.
    - Bring it close (filling about a quarter of the frame) and you hear "…directly in front of you" once, and the window closes.
 4. Run it again and press **ENTER** in the terminal. You should hear "Search cancelled." and the program exits.

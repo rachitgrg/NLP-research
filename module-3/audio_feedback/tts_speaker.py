@@ -2,32 +2,100 @@
 # ─────────────────────────────────────────────────────────────
 # Module 3 – Milestone 5: Audio Feedback & Speech Synthesis
 #
-# Thread-safe, non-blocking Text-To-Speech engine using pyttsx3.
+# Thread-safe, non-blocking Text-To-Speech engine.
 # Designed for blind and visually impaired users:
 #   • Runs audio synthesis in a background worker thread.
 #   • Enforces utterance cooldown / debouncing to avoid speech flood.
 #   • Supports priority interruptions (obstacles & arrival).
 #   • Gracefully degrades to a mock console logger if audio hardware
 #     is unavailable or in automated test environments.
+#
+# Speech backends
+# ───────────────
+#   Windows : SAPI5 called directly via comtypes (blocking Speak()).
+#   Other   : pyttsx3, with a fresh engine per utterance.
+#
+# A single reused pyttsx3 engine only speaks the FIRST utterance on
+# Windows when driven from a worker thread: later runAndWait() calls
+# return in ~0.07 s without sound or error.  Both backends above avoid
+# reusing pyttsx3's event-loop state.
 # ─────────────────────────────────────────────────────────────
 
 from __future__ import annotations
 
 import logging
 import queue
+import sys
 import threading
 import time
 from enum import IntEnum
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from config.config import (
     TTS_ENABLED,
+    TTS_REPEAT_COOLDOWN_S,
     TTS_SPEECH_COOLDOWN_S,
     TTS_SPEECH_RATE,
     TTS_SPEECH_VOLUME,
 )
 
 logger = logging.getLogger(__name__)
+
+# An utterance of real text that "finishes" faster than this almost
+# certainly produced no sound (the silent-failure signature above).
+_SILENT_SPEECH_THRESHOLD_S = 0.15
+
+
+class _SapiEngine:
+    """Windows SAPI5 voice; must be created and used in the same thread."""
+
+    def __init__(self, rate_wpm: int, volume: float) -> None:
+        import comtypes  # type: ignore
+        import comtypes.client  # type: ignore
+
+        comtypes.CoInitialize()
+        self._comtypes = comtypes
+        self._voice = comtypes.client.CreateObject("SAPI.SpVoice")
+        # SAPI rate is -10..10 (0 ≈ 180 wpm); volume is 0..100.
+        self._voice.Rate = max(-10, min(10, round((rate_wpm - 180) / 18)))
+        self._voice.Volume = max(0, min(100, int(volume * 100)))
+
+    def speak(self, text: str) -> None:
+        self._voice.Speak(text, 0)  # 0 = synchronous: returns after speaking
+
+    def close(self) -> None:
+        self._voice = None
+        self._comtypes.CoUninitialize()
+
+
+class _Pyttsx3Engine:
+    """pyttsx3 fallback (non-Windows); fresh engine per utterance."""
+
+    def __init__(self, rate_wpm: int, volume: float) -> None:
+        import pyttsx3  # type: ignore
+
+        self._pyttsx3 = pyttsx3
+        self._rate = rate_wpm
+        self._volume = volume
+        self._make().stop()  # fail early if no backend is available
+
+    def _make(self) -> Any:
+        engine = self._pyttsx3.init()
+        engine.setProperty("rate", self._rate)
+        engine.setProperty("volume", self._volume)
+        return engine
+
+    def speak(self, text: str) -> None:
+        engine = self._make()
+        try:
+            engine.say(text)
+            engine.runAndWait()
+        finally:
+            engine.stop()
+            del engine
+
+    def close(self) -> None:
+        pass
 
 
 class SpeechPriority(IntEnum):
@@ -53,9 +121,12 @@ class TTSSpeaker:
         speech_rate: int = TTS_SPEECH_RATE,
         speech_volume: float = TTS_SPEECH_VOLUME,
         use_mock: bool = False,
+        repeat_cooldown_s: float = TTS_REPEAT_COOLDOWN_S,
     ) -> None:
         self.enabled = enabled
         self.cooldown_s = cooldown_s
+        self.repeat_cooldown_s = repeat_cooldown_s
+        self._silent_count = 0
         self.speech_rate = speech_rate
         self.speech_volume = speech_volume
         self.use_mock = use_mock
@@ -118,10 +189,11 @@ class TTSSpeaker:
 
         with self._lock:
             if not force:
-                # Never repeat the same text within the cooldown — this applies
-                # to EMERGENCY/ARRIVAL too, which are re-issued on every frame
-                # (~20 FPS) while the condition persists.
-                if cleaned == self._last_spoken_text and (now - self._last_spoken_time) < self.cooldown_s:
+                # Never repeat the same text within the repeat cooldown — this
+                # applies to EMERGENCY/ARRIVAL too, which are re-issued on every
+                # frame (~20 FPS) while the condition persists.
+                repeat_window = max(self.cooldown_s, self.repeat_cooldown_s)
+                if cleaned == self._last_spoken_text and (now - self._last_spoken_time) < repeat_window:
                     return False
                 if priority >= SpeechPriority.GUIDANCE and (now - self._last_spoken_time) < (self.cooldown_s * 0.6):
                     # Minimum pause between distinct regular guidance instructions
@@ -152,19 +224,41 @@ class TTSSpeaker:
             self._queue.put(item)
 
     def _init_engine(self) -> Any:
-        """Initialise the pyttsx3 engine in the worker thread."""
+        """
+        Create the speech backend in the worker thread.
+
+        Returns an object with ``speak(text)`` (blocks until spoken) and
+        ``close()``, or None for console-only output.
+        """
         if self.use_mock:
             return None
 
+        engine_cls = _SapiEngine if sys.platform == "win32" else _Pyttsx3Engine
         try:
-            import pyttsx3  # type: ignore
-            engine = pyttsx3.init()
-            engine.setProperty("rate", self.speech_rate)
-            engine.setProperty("volume", self.speech_volume)
-            return engine
+            return engine_cls(self.speech_rate, self.speech_volume)
         except Exception as exc:
-            logger.warning("Could not initialize pyttsx3 (%s). Falling back to mock audio logger.", exc)
+            logger.error(
+                "Speech output unavailable (%s: %s). Guidance will be printed only.",
+                engine_cls.__name__, exc,
+            )
             return None
+
+    def _speak_with_engine(self, engine: Any, text: str) -> None:
+        """Speak one utterance and flag the silent-failure signature."""
+        t0 = time.monotonic()
+        engine.speak(text)
+        elapsed = time.monotonic() - t0
+        logger.debug("Spoke %r in %.2fs", text, elapsed)
+
+        if elapsed < _SILENT_SPEECH_THRESHOLD_S and len(text) >= 3:
+            self._silent_count += 1
+            # First occurrence and then every 10th, to avoid console spam.
+            if self._silent_count == 1 or self._silent_count % 10 == 0:
+                logger.warning(
+                    "TTS returned after %.2fs for %r — speech was probably not heard "
+                    "(%d such utterance(s) so far). Check the audio output device.",
+                    elapsed, text, self._silent_count,
+                )
 
     def _worker_loop(self) -> None:
         """Continuously pops from priority queue and synthesizes speech."""
@@ -184,19 +278,20 @@ class TTSSpeaker:
                     self.on_speak(text, priority)
 
                 if engine is not None:
-                    engine.say(text)
-                    engine.runAndWait()
+                    self._speak_with_engine(engine, text)
                 else:
                     # Mock or console mode
-                    print(f"  🔊 [AUDIO] {text}")
+                    # ASCII only: a cp1252 Windows console cannot encode emoji,
+                    # and the resulting error would hide the guidance text.
+                    print(f"  [AUDIO] {text}")
             except Exception as exc:
-                logger.error("TTS speech error: %s", exc)
+                logger.error("TTS speech error for %r: %s", text, exc)
             finally:
                 self._queue.task_done()
 
         if engine is not None:
             try:
-                engine.stop()
+                engine.close()
             except Exception:
                 pass
 

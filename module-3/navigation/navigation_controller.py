@@ -211,10 +211,10 @@ class NavigationController:
         self._arrival_streak = 0
         if self.ever_found:
             self.state = NavigationState.LOST
-            instruction = f"{self.target_name.capitalize()} lost from view. Please pan camera slowly."
+            instruction = f"{self.target_name.capitalize()} lost. Turn back slowly."
         else:
             self.state = NavigationState.SEARCHING
-            instruction = f"{self.target_name.capitalize()} not found. Pan camera slowly."
+            instruction = f"{self.target_name.capitalize()} not seen. Turn slowly."
 
         # Speak searching prompt with pacing cooldown
         if (now - self.last_search_prompt_time) >= self.searching_cooldown_s:

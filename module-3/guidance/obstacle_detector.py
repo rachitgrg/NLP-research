@@ -177,15 +177,15 @@ class ObstacleDetector:
             if box_span > 0.65 or area_ratio > 0.35:
                 # Spans most of the walking path or very close
                 detour = "stop"
-                warning = f"Caution: {class_name} blocking path ahead. Stop."
+                warning = f"Stop. {class_name.capitalize()} ahead."
             elif norm_cx <= 0.50:
                 # Obstacle is on the left side of path -> veer right
                 detour = "right"
-                warning = f"Caution: {class_name} ahead on your left. Step slightly right."
+                warning = f"{class_name.capitalize()} on left. Step slightly right."
             else:
                 # Obstacle is on the right side of path -> veer left
                 detour = "left"
-                warning = f"Caution: {class_name} ahead on your right. Step slightly left."
+                warning = f"{class_name.capitalize()} on right. Step slightly left."
 
             hazards.append(
                 ObstacleHazard(

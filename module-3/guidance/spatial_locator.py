@@ -197,7 +197,11 @@ class SpatialLocator:
     @staticmethod
     def format_guidance(location: SpatialLocation, target_name: str = "object") -> str:
         """
-        Produce a concise, natural spoken guidance string.
+        Produce a short spoken guidance string ("Bottle, left.").
+
+        Kept short on purpose: guidance repeats while the user moves, and
+        each extra word delays the next update (~4.6 s for the old long
+        form vs ~1-1.5 s for a short phrase, measured with Windows SAPI).
         """
         name = target_name.strip().capitalize() if target_name else "Object"
 
@@ -205,12 +209,12 @@ class SpatialLocator:
             return f"{name} is directly in front of you. Stop and reach out."
 
         if location.zone == HorizontalZone.CENTER:
-            return f"{name} is straight ahead. Move forward."
+            return f"{name}, straight ahead."
         elif location.zone == HorizontalZone.FAR_LEFT:
-            return f"{name} is far left. Turn left."
+            return f"{name}, far left."
         elif location.zone == HorizontalZone.LEFT:
-            return f"{name} is on your left. Turn slightly left."
+            return f"{name}, left."
         elif location.zone == HorizontalZone.RIGHT:
-            return f"{name} is on your right. Turn slightly right."
+            return f"{name}, right."
         else:  # FAR_RIGHT
-            return f"{name} is far right. Turn right."
+            return f"{name}, far right."

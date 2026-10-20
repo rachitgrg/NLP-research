@@ -4,10 +4,10 @@
 #
 # Simulates the complete user scenario requested by the user:
 #   1. Voice query: "where is my bottle" -> NLP extracts "bottle"
-#   2. Frame 1: Bottle not in view -> "Bottle not found. Pan camera slowly."
-#   3. Frame 2: User pans, bottle appears in far-right -> "Bottle is far right. Turn right."
-#   4. Frame 3: User turns, bottle moves to center -> "Bottle is straight ahead. Move forward."
-#   5. Frame 4: Chair blocks walking corridor -> "Caution: chair ahead on your left. Step slightly right."
+#   2. Frame 1: Bottle not in view -> "Bottle not seen. Turn slowly."
+#   3. Frame 2: User pans, bottle appears in far-right -> "Bottle, far right."
+#   4. Frame 3: User turns, bottle moves to center -> "Bottle, straight ahead."
+#   5. Frame 4: Chair blocks walking corridor -> "Chair on left. Step slightly right."
 #   6. Frame 5: User bypasses chair, approaches bottle -> "Bottle is directly in front of you. Stop and reach out."
 # ─────────────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ class TestFullAssistiveWorkflow:
         step1 = controller.process_frame(frame1_detections, frame_w, frame_h)
         assert step1.state == NavigationState.SEARCHING
         assert step1.target_found is False
-        assert "bottle not found" in step1.spoken_instruction.lower()
+        assert "bottle not seen" in step1.spoken_instruction.lower()
 
         # ── Step 3 / Frame 2: User pans camera, bottle spotted in far-right ──
         # x: 820..940 (norm cx = 880/1000 = 0.88 > 0.80 -> FAR_RIGHT)

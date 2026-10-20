@@ -43,7 +43,7 @@ class TestNavigationControllerStates:
         step = controller.process_frame(detections, 1000, 1000)
         assert step.state == NavigationState.SEARCHING
         assert step.target_found is False
-        assert "not found" in step.spoken_instruction.lower()
+        assert "not seen" in step.spoken_instruction.lower()
 
     def test_target_detected_transitions_to_guiding(self, controller):
         # Bottle at center, small area

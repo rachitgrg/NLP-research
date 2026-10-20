@@ -57,7 +57,7 @@ Calculates horizontal zones and proximity ratios from target bounding boxes:
 ### Milestone 5 — Assistive Navigation, Obstacle Avoidance & Offline TTS
 
 Combines all components into an autonomous voice assistant for visually impaired users:
-- **Corridor Safety**: Evaluates obstacles in the walking corridor (`chair`, `table`, `couch`, `person`) and generates detour advice (*"Caution: chair ahead on your left. Step slightly right"*).
+- **Corridor Safety**: Evaluates obstacles in the walking corridor (`chair`, `table`, `couch`, `person`) and generates detour advice (*"Chair on left. Step slightly right."*).
 - **Offline TTS Feedback**: Non-blocking voice synthesis with priority overrides for emergency hazard warnings and arrival cues.
 - **Continuous Guidance Loop**: Updates guidance as user moves until arrival (*"Bottle is directly in front of you. Stop and reach out"*).
 
