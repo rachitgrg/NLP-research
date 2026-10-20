@@ -38,6 +38,10 @@ opencv-python==5.0.0.93
 # numpy is required by both OpenCV and Ultralytics.
 numpy
 
+# ── Speech Synthesis (Offline TTS) ────────────────────────────
+# pyttsx3 for low-latency offline voice navigation feedback
+pyttsx3
+
 # ─────────────────────────────────────────────────────────────
 # OPTIONAL — GPU acceleration
 # ─────────────────────────────────────────────────────────────

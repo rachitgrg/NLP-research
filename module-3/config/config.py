@@ -14,15 +14,14 @@ from pathlib import Path
 MODULE_ROOT = Path(__file__).resolve().parent.parent
 
 # ── YOLO Model ────────────────────────────────────────────────
-# YOLOv8n ("nano") — smallest / fastest pretrained model.
-# Suitable for real-time inference on a CPU laptop.
-# Ultralytics will auto-download this on first run if not found.
+# Fine-tuned YOLOv8n on 15-class indoor assistive-navigation subset.
+# Trained for 30 epochs on COCO train2014 → mAP@50 = 48.1%
 #
-# To swap in a custom-trained model later, change this path:
-#   YOLO_MODEL_PATH = r"C:\path\to\your\custom_best.pt"
+# To revert to the generic pretrained model:
+#   YOLO_MODEL_PATH = "yolov8n.pt"
 YOLO_MODEL_PATH: str = os.environ.get(
     "YOLO_MODEL_PATH",
-    "yolov8n.pt",          # downloaded to the CWD / Ultralytics cache on first run
+    str(MODULE_ROOT.parent / "module-2" / "runs" / "train" / "weights" / "best.pt"),
 )
 
 # ── Detection ─────────────────────────────────────────────────
@@ -37,7 +36,8 @@ INFERENCE_IMG_SIZE: int = int(os.environ.get("INFERENCE_IMG_SIZE", "640"))
 # "cpu"  — always works; safe default for any laptop.
 # "cuda" — requires a CUDA-capable GPU + torch-cuda installed.
 # "mps"  — Apple Silicon GPU (macOS only).
-INFERENCE_DEVICE: str = os.environ.get("INFERENCE_DEVICE", "cpu")
+# RTX 3050 detected — defaulting to cuda for real-time performance.
+INFERENCE_DEVICE: str = os.environ.get("INFERENCE_DEVICE", "cuda")
 
 # ── Camera ────────────────────────────────────────────────────
 # Index of the webcam to open (0 = default/built-in camera).
@@ -69,4 +69,34 @@ LOG_EVERY_N_FRAMES: int = int(os.environ.get("LOG_EVERY_N_FRAMES", "30"))
 # Set to 0 to print on every LOG_EVERY_N_FRAMES tick.
 TARGET_STATUS_COOLDOWN_S: float = float(
     os.environ.get("TARGET_STATUS_COOLDOWN_S", "2.0")
+)
+
+# ── Milestone 4 — Spatial Guidance & Proximity ────────────────
+# Normalized horizontal boundary thresholds (0.0 = left edge, 1.0 = right edge)
+ZONE_FAR_LEFT_THRESHOLD: float = float(os.environ.get("ZONE_FAR_LEFT_THRESHOLD", "0.20"))
+ZONE_LEFT_THRESHOLD: float = float(os.environ.get("ZONE_LEFT_THRESHOLD", "0.40"))
+ZONE_RIGHT_THRESHOLD: float = float(os.environ.get("ZONE_RIGHT_THRESHOLD", "0.60"))
+ZONE_FAR_RIGHT_THRESHOLD: float = float(os.environ.get("ZONE_FAR_RIGHT_THRESHOLD", "0.80"))
+
+# Proximity area ratio thresholds (bbox_area / frame_area)
+PROXIMITY_FAR_THRESHOLD: float = float(os.environ.get("PROXIMITY_FAR_THRESHOLD", "0.05"))
+PROXIMITY_APPROACHING_THRESHOLD: float = float(os.environ.get("PROXIMITY_APPROACHING_THRESHOLD", "0.22"))
+ARRIVAL_AREA_THRESHOLD: float = float(os.environ.get("ARRIVAL_AREA_THRESHOLD", "0.22"))
+
+# ── Milestone 5 — Audio TTS Feedback ──────────────────────────
+# Speech pacing and voice synthesis parameters
+TTS_SPEECH_COOLDOWN_S: float = float(os.environ.get("TTS_SPEECH_COOLDOWN_S", "2.0"))
+TTS_SPEECH_RATE: int = int(os.environ.get("TTS_SPEECH_RATE", "170"))  # Words per minute
+TTS_SPEECH_VOLUME: float = float(os.environ.get("TTS_SPEECH_VOLUME", "1.0"))  # 0.0 - 1.0
+TTS_ENABLED: bool = os.environ.get("TTS_ENABLED", "true").lower() in ("true", "1", "yes")
+
+# ── Milestone 5 — Obstacle Detection & Avoidance ──────────────
+OBSTACLE_DETECTION_ENABLED: bool = os.environ.get("OBSTACLE_DETECTION_ENABLED", "true").lower() in ("true", "1", "yes")
+OBSTACLE_CORRIDOR_LEFT: float = float(os.environ.get("OBSTACLE_CORRIDOR_LEFT", "0.25"))
+OBSTACLE_CORRIDOR_RIGHT: float = float(os.environ.get("OBSTACLE_CORRIDOR_RIGHT", "0.75"))
+OBSTACLE_CORRIDOR_Y_MIN: float = float(os.environ.get("OBSTACLE_CORRIDOR_Y_MIN", "0.35"))
+OBSTACLE_MIN_AREA_RATIO: float = float(os.environ.get("OBSTACLE_MIN_AREA_RATIO", "0.05"))
+OBSTACLE_CLASSES: tuple[str, ...] = (
+    "chair", "couch", "dining table", "bed", "bench",
+    "person", "tv", "refrigerator", "toilet", "suitcase"
 )

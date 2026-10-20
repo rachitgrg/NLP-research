@@ -142,6 +142,25 @@ def parse_args() -> argparse.Namespace:
         metavar="SECONDS",
         help="Recording duration in seconds when --voice is used. Default: 5.",
     )
+    # ── M4/M5: Spatial Guidance, Obstacles & TTS ─────────────
+    parser.add_argument(
+        "--navigate",
+        "--guidance",
+        action="store_true",
+        default=False,
+        dest="navigate",
+        help=(
+            "M4/M5 mode: Enable real-time spatial directional guidance (far-left, "
+            "left, center, right, far-right), proximity alerts, obstacle avoidance, "
+            "and spoken voice feedback."
+        ),
+    )
+    parser.add_argument(
+        "--no-tts",
+        action="store_true",
+        default=False,
+        help="Disable spoken audio TTS output (print guidance text only).",
+    )
     return parser.parse_args()
 
 
@@ -274,14 +293,44 @@ def main() -> None:
 
     print("Model ready.\n")
 
-    # ── M3: initialise target matcher (if target is known) ─────
+    # ── M3/M4/M5: initialise navigation controller or target matcher ──
     target_matcher = None
+    nav_controller = None
+    speaker = None
+
     if raw_target:
-        target_matcher = TargetMatcher()
+        if args.navigate:
+            from audio_feedback.tts_speaker import TTSSpeaker
+            from guidance.obstacle_detector import ObstacleDetector
+            from guidance.spatial_locator import SpatialLocator
+            from navigation.navigation_controller import NavigationController
+
+            # BUG FIX B1: NavigationController must receive the normalized target
+            # (e.g. "cell phone", not "phone") because its internal matcher
+            # compares against YOLO class_name values which are COCO canonical.
+            # normalize_target() is already imported at the top of this file.
+            nav_target = normalize_target(raw_target)
+
+            speaker = TTSSpeaker(enabled=not args.no_tts)
+            nav_controller = NavigationController(
+                target_name=nav_target,
+                matcher=TargetMatcher(),
+                locator=SpatialLocator(),
+                obstacle_detector=ObstacleDetector(),
+                speaker=speaker,
+            )
+        else:
+            target_matcher = TargetMatcher()
 
     # ── Start live camera + detection loop ─────────────────────
     try:
-        run_camera_loop(detector, target_matcher, raw_target)
+        run_camera_loop(
+            detector=detector,
+            target_matcher=target_matcher,
+            raw_target=raw_target,
+            nav_controller=nav_controller,
+            camera_index=args.camera,   # BUG FIX B3: pass CLI --camera override
+        )
     except RuntimeError as exc:
         logger.error("%s", exc)
         print(
@@ -291,6 +340,9 @@ def main() -> None:
             "  python main.py --camera 1\n"
         )
         sys.exit(1)
+    finally:
+        if speaker is not None:
+            speaker.stop()
 
 
 if __name__ == "__main__":

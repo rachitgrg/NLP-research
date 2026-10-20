@@ -219,3 +219,93 @@ def draw_target_overlay(
 
     return frame
 
+
+def draw_navigation_overlay(
+    frame: np.ndarray,
+    nav_step: Any,
+) -> np.ndarray:
+    """
+    Overlay navigation cues, zone guidelines, and obstacle warnings onto frame.
+
+    Parameters
+    ----------
+    frame : np.ndarray
+        BGR image to annotate.
+    nav_step : NavigationStep
+        Navigation step object from NavigationController.
+
+    Returns
+    -------
+    np.ndarray
+    """
+    h, w = frame.shape[:2]
+
+    # ── 1. Subtle Zone Guidelines ─────────────────────────────
+    # Vertical sector marks at 20%, 40%, 60%, 80%
+    zone_lines = [int(w * 0.20), int(w * 0.40), int(w * 0.60), int(w * 0.80)]
+    for zx in zone_lines:
+        cv2.line(frame, (zx, 0), (zx, h), (80, 80, 80), 1, cv2.LINE_AA)
+
+    # ── 2. Obstacle Hazard Highlighting ───────────────────────
+    if nav_step.obstacle_report.has_hazard:
+        for hazard in nav_step.obstacle_report.hazards:
+            hx1, hy1, hx2, hy2 = hazard.bbox
+            # Bright warning red border
+            cv2.rectangle(frame, (hx1, hy1), (hx2, hy2), (0, 0, 255), 3)
+            warn_lbl = f"! HAZARD: {hazard.class_name.upper()} !"
+            cv2.putText(
+                frame,
+                warn_lbl,
+                (hx1, max(hy1 - 8, 20)),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.55,
+                (0, 0, 255),
+                2,
+                cv2.LINE_AA,
+            )
+
+    # ── 3. Target Highlighting & Crosshair ────────────────────
+    loc = nav_step.spatial_location
+    if nav_step.target_found and loc is not None:
+        cx = int(loc.normalized_x * w)
+        cy = int(loc.normalized_y * h)
+        box_colour = (0, 255, 0) if not nav_step.is_arrived else (0, 255, 255)
+        # Crosshair at target center
+        cv2.circle(frame, (cx, cy), 8, box_colour, -1)
+        cv2.line(frame, (cx - 20, cy), (cx + 20, cy), box_colour, 2)
+        cv2.line(frame, (cx, cy - 20), (cx, cy + 20), box_colour, 2)
+
+    # ── 4. Main Navigation Banner at Bottom ───────────────────
+    banner_h = 42
+    banner_y = h - banner_h
+
+    # Color depends on state
+    state_str = str(nav_step.state.value if hasattr(nav_step.state, "value") else nav_step.state)
+    if state_str == "ARRIVED":
+        bg_col = (0, 200, 255)       # Gold / Yellow
+    elif state_str == "OBSTRUCTED":
+        bg_col = (0, 0, 220)         # Red
+    elif state_str == "GUIDING":
+        bg_col = (0, 180, 50)        # Green
+    elif state_str == "UNSUPPORTED":
+        bg_col = (0, 140, 255)       # Orange
+    else:
+        bg_col = (60, 60, 60)        # Dark Slate for searching
+
+    cv2.rectangle(frame, (0, banner_y), (w, h), bg_col, cv2.FILLED)
+
+    instruction_text = nav_step.spoken_instruction
+    label = f"[{state_str}]  {instruction_text}"
+    cv2.putText(
+        frame,
+        label,
+        (12, h - 14),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.58,
+        (255, 255, 255),
+        2,
+        cv2.LINE_AA,
+    )
+
+    return frame
+

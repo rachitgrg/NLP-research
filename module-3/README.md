@@ -48,9 +48,18 @@ TargetMatcher.match("bottle", detections)
 {"target": "bottle", "found": True, "confidence": 0.86, "bbox": [...], ...}
 ```
 
-> ⚠️  M3 **only** answers "found / not found". Navigation, left/right instructions,
-> distance estimation, TTS, and object tracking are **NOT** implemented here —
-> those belong to Milestone 4+.
+### Milestone 4 — Spatial Localization & Proximity
+
+Calculates horizontal zones and proximity ratios from target bounding boxes:
+- **5 Horizontal Zones**: `far left`, `left`, `center`, `right`, `far right`.
+- **Proximity Estimation**: `far`, `approaching`, `reached` (within arm's reach).
+
+### Milestone 5 — Assistive Navigation, Obstacle Avoidance & Offline TTS
+
+Combines all components into an autonomous voice assistant for visually impaired users:
+- **Corridor Safety**: Evaluates obstacles in the walking corridor (`chair`, `table`, `couch`, `person`) and generates detour advice (*"Caution: chair ahead on your left. Step slightly right"*).
+- **Offline TTS Feedback**: Non-blocking voice synthesis with priority overrides for emergency hazard warnings and arrival cues.
+- **Continuous Guidance Loop**: Updates guidance as user moves until arrival (*"Bottle is directly in front of you. Stop and reach out"*).
 
 ---
 
@@ -61,13 +70,27 @@ module-3/
 │
 ├── config/
 │   ├── __init__.py
-│   └── config.py              # ALL tuneable parameters live here
+│   └── config.py              # ALL tuneable parameters (thresholds, corridors, TTS)
+│
+├── audio_feedback/            # Milestone 5: Voice feedback engine
+│   ├── __init__.py
+│   └── tts_speaker.py         # Asynchronous, debounced pyttsx3 speech synthesizer
+│
+├── guidance/                  # Milestone 4 & 5: Spatial math & safety
+│   ├── __init__.py
+│   ├── spatial_locator.py     # 5 horizontal zones + proximity + arrival math
+│   └── obstacle_detector.py   # Corridor obstacle filtering & detour generation
+│
+├── navigation/                # Milestone 5: Finite State Machine
+│   ├── __init__.py
+│   ├── navigation_state.py    # NavigationState enum & NavigationStep dataclass
+│   └── navigation_controller.py# Orchestrates target matching, hazard alerts & arrival
 │
 ├── detection/
 │   ├── __init__.py
 │   ├── yolo_detector.py       # Reusable YOLODetector class (YOLO interface)
-│   ├── camera_detector.py     # Live camera loop + orchestration (M2 & M3)
-│   └── visualizer.py          # Bounding-box drawing + target overlay (M3)
+│   ├── camera_detector.py     # Live camera loop + orchestration (M2, M3, M4/M5)
+│   └── visualizer.py          # Bounding-box drawing, guidelines & navigation overlays
 │
 ├── matching/                  # Milestone 3 target matching
 │   ├── __init__.py            # Exports SearchState
@@ -75,20 +98,24 @@ module-3/
 │   ├── target_matcher.py      # TargetMatcher — core M3 component
 │   └── search_state.py        # SearchState enum (SEARCHING / TARGET_FOUND)
 │
-├── pipeline/                  # Milestone 3 Module 1 integration bridge
+├── pipeline/                  # Module 1 integration bridge
 │   ├── __init__.py
 │   └── m3_pipeline.py         # extract_target_from_module1() + run_voice_pipeline()
 │
 ├── tests/
-│   ├── __init__.py
-│   ├── conftest.py            # pytest sys.path bootstrap
 │   ├── test_config.py         # Config value type + env-override tests
-│   ├── test_yolo_detector.py  # Detector output structure (mocked, no GPU needed)
+│   ├── test_yolo_detector.py  # Detector output structure (mocked)
 │   ├── test_visualizer.py     # Draw function tests
-│   ├── test_target_matcher.py # 26 tests for M3 target matching
-│   └── test_m3_integration.py # 30 integration tests (5 spec + 25 additional)
+│   ├── test_target_matcher.py # Target normalizer + matcher tests
+│   ├── test_spatial_locator.py# Milestone 4 spatial zone + proximity tests
+│   ├── test_obstacle_detector.py # Milestone 5 obstacle detection & detour tests
+│   ├── test_tts_speaker.py    # Milestone 5 TTS queue and debounce tests
+│   ├── test_navigation_controller.py # State machine lifecycle tests
+│   ├── test_assistive_pipeline.py # End-to-end 5-step assistive flow tests
+│   └── test_m3_integration.py # Integration test suite
 │
-├── main.py                    # Entry point — M2 + M3 --target + M3 --voice
+├── assistant.py               # Dedicated voice-first assistant runner for blind users
+├── main.py                    # Multi-mode entry point (M2, M3, M4/M5 --navigate)
 ├── requirements.txt
 ├── .gitignore
 └── README.md                  # This file
@@ -356,32 +383,27 @@ The tests use **mocking** — no camera, no model download, and no GPU are requi
 **Test counts:**
 - `test_config.py` — 11 tests (config defaults + env overrides)
 - `test_yolo_detector.py` — 13 tests (detection output, edge cases)
-- `test_visualizer.py` — 8 tests (draw functions)
+- `test_visualizer.py` — 8 tests (draw functions + navigation overlay)
 - `test_target_matcher.py` — 26 tests (normalization, matching, schema)
-- `test_m3_integration.py` — 30 tests (5 mandatory spec cases + SearchState + Module 1 bridge + full pipeline)
-- **Total: 85 tests**
+- `test_spatial_locator.py` — 13 tests (5 horizontal zones, proximity, arrival, clamping)
+- `test_obstacle_detector.py` — 10 tests (corridor hazards, detours, filters)
+- `test_tts_speaker.py` — 9 tests (queue, priority bypass, debouncing, lifecycle)
+- `test_navigation_controller.py` — 8 tests (state machine transitions, guiding, obstacles, arrival)
+- `test_assistive_pipeline.py` — 1 test (complete 5-step user journey simulation)
+- `test_m3_integration.py` — 30 tests (mandatory spec cases + SearchState + Module 1 bridge + full pipeline)
+- **Total: 129 tests (100% passing)**
 
 ---
 
 ## Milestone Scope
 
-| Milestone | What it does |
-|---|---|
-| **M2** (this module) | Camera + YOLO: detect all objects in the live frame |
-| **M3** (this module) | Target Matching: "is the user's requested object currently visible?" |
-| M4 (future) | Spatial localization: left / centre / right of frame |
-| M5+ (future) | Navigation, TTS, obstacle avoidance, object tracking |
-
-### What M3 intentionally does NOT implement
-
-- ❌ Left/right/center navigation instructions
-- ❌ Distance estimation ("you are close")
-- ❌ Object tracking (DeepSORT / ByteTrack)
-- ❌ Text-to-Speech (TTS)
-- ❌ Continuous movement guidance
-- ❌ Obstacle avoidance
-- ❌ Custom YOLO training
-- ❌ RefCOCO integration
+| Milestone | What it does | Status |
+|---|---|:---:|
+| **M1** | Multilingual Voice STT + spaCy Query Parser (Module 1) | **Completed** |
+| **M2** | Camera + YOLO: detect all objects in the live frame | **Completed** |
+| **M3** | Target Matching: "is the user's requested object currently visible?" | **Completed** |
+| **M4** | Spatial localization: 5 horizontal zones + distance proximity estimation | **Completed** |
+| **M5** | Assistive Navigation: real-time voice guidance, obstacle avoidance, arrival trigger | **Completed** |
 
 ---
 

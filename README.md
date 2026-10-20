@@ -26,8 +26,8 @@ It establishes the two foundational pillars required before visual grounding can
 **2. Dataset Foundation (Implemented):**  
 `COCO + RefCOCO → Validation → Preprocessing → Exploratory Data Analysis (EDA) → [Future Grounding Dataset]`
 
-**3. Camera & YOLO Detection (Implemented — Milestone 2):**  
-`Webcam → OpenCV Frame Capture → YOLOv8n Inference → Structured Detections → Live Annotated Display → [Future: Target Matching + Navigation]`
+**3. Camera, YOLO Detection & Assistive Navigation (Implemented — Milestones 2, 3, 4, 5):**  
+`Voice Input → Target Extraction → Webcam Capture → YOLOv8n Detection → Spatial Localization (5 Zones) → Corridor Obstacle Detection → Offline TTS Speech Guidance → Arrival Trigger`
 
 *(See [System Architecture Diagram](research/figures/fig_01_stage1_architecture.png) and [Dataset Pipeline Diagram](research/figures/fig_13_dataset_pipeline.png))*
 
@@ -37,7 +37,11 @@ It establishes the two foundational pillars required before visual grounding can
 
 - **`module-1/`**: Voice pipeline containing microphone capture, a multi-model ASR framework, and the `spaCy` NLP parser. Includes a robust 77-case automated test suite.
 - **`module-2/`**: Jupyter notebooks dedicated to COCO and RefCOCO dataset inspection, bounding-box validation, split verification, and Linguistic EDA.
-- **`module-3/`**: Real-time camera + YOLO object detection pipeline (Milestone 2). YOLOv8n inference on live webcam feed with structured detection output ready for downstream navigation modules.
+- **`module-3/`**: Real-time vision, target matching, and assistive navigation pipeline:
+  - *Milestone 2*: YOLOv8n object detection on live webcam feed.
+  - *Milestone 3*: Spoken target normalization and matching.
+  - *Milestone 4*: Spatial localization (5 horizontal zones: far-left, left, center, right, far-right) and distance/proximity estimation.
+  - *Milestone 5*: Voice-first assistant (`assistant.py`), corridor obstacle avoidance, non-blocking offline TTS voice feedback, and arrival detection. 129 automated tests.
 - **`research/`**: The comprehensive academic research output of Stage 1, including formal findings, a faculty demonstration summary, and publication-ready graphs and tables.
 
 ---
