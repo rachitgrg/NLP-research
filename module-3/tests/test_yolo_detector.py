@@ -229,3 +229,37 @@ class TestYOLODetectorMissingLibrary:
                     img_size=640,
                     device="cpu",
                 )
+
+
+class TestTargetConfidenceThreshold:
+    """B2: the requested class may pass at a lower confidence than others."""
+
+    def _boxes(self, detector):
+        detector._mock_model.predict.return_value = [_make_fake_result([
+            (10, 10, 50, 90, 39, 0.30),   # bottle, between 0.25 and 0.40
+            (60, 10, 99, 90, 56, 0.30),   # chair, same confidence
+            (0, 0, 200, 300, 0, 0.80),    # person, confident
+        ])]
+
+    def test_without_target_everything_needs_base_threshold(self, detector):
+        self._boxes(detector)
+        names = [d["class_name"] for d in detector.detect(np.zeros((100, 100, 3), np.uint8))]
+        assert names == ["person"]
+
+    def test_target_kept_from_lower_threshold_others_unchanged(self, detector):
+        detector.set_target("Bottle", 0.25)
+        self._boxes(detector)
+        names = [d["class_name"] for d in detector.detect(np.zeros((100, 100, 3), np.uint8))]
+        assert sorted(names) == ["bottle", "person"]
+
+    def test_predict_runs_at_lowest_threshold(self, detector):
+        detector.set_target("bottle", 0.25)
+        detector.detect(np.zeros((100, 100, 3), np.uint8))
+        assert detector._mock_model.predict.call_args.kwargs["conf"] == 0.25
+
+    def test_clearing_target_restores_base(self, detector):
+        detector.set_target("bottle", 0.25)
+        detector.set_target(None)
+        self._boxes(detector)
+        names = [d["class_name"] for d in detector.detect(np.zeros((100, 100, 3), np.uint8))]
+        assert names == ["person"]

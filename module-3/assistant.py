@@ -26,6 +26,7 @@ from config.config import (
     CONFIDENCE_THRESHOLD,
     INFERENCE_DEVICE,
     INFERENCE_IMG_SIZE,
+    TARGET_CONFIDENCE_THRESHOLD,
     YOLO_MODEL_PATH,
 )
 from detection.camera_detector import run_camera_loop
@@ -34,6 +35,7 @@ from guidance.obstacle_detector import ObstacleDetector
 from guidance.spatial_locator import SpatialLocator
 from matching.target_matcher import TargetMatcher
 from matching.target_normalizer import is_supported_class, normalize_target
+from matching.temporal_filter import TargetTracker
 from navigation.navigation_controller import NavigationController
 
 logging.basicConfig(
@@ -165,6 +167,9 @@ def run_assistant(
         speaker.stop()
         return
 
+    # Accept the requested object at a lower confidence than other classes.
+    detector.set_target(normalized, TARGET_CONFIDENCE_THRESHOLD)
+
     # Acknowledge target
     speaker.speak(f"Looking for {normalized}. Please hold camera steady and scan slowly.")
 
@@ -175,6 +180,7 @@ def run_assistant(
         locator=SpatialLocator(),
         obstacle_detector=ObstacleDetector(),
         speaker=speaker,
+        tracker=TargetTracker(),
     )
 
     try:

@@ -46,6 +46,7 @@ from config.config import (
     CONFIDENCE_THRESHOLD,
     INFERENCE_DEVICE,
     INFERENCE_IMG_SIZE,
+    TARGET_CONFIDENCE_THRESHOLD,
     YOLO_MODEL_PATH,
 )
 from detection.camera_detector import run_camera_loop
@@ -290,6 +291,9 @@ def main() -> None:
             f"  WARNING: {normalize_target(raw_target)!r} is not one of the loaded model's "
             f"{len(detector.class_names)} classes (will show as UNSUPPORTED)\n"
         )
+    elif raw_target:
+        # Accept the requested object at a lower confidence than other classes.
+        detector.set_target(normalize_target(raw_target), TARGET_CONFIDENCE_THRESHOLD)
 
     # ── M3/M4/M5: initialise navigation controller or target matcher ──
     target_matcher = None
@@ -302,6 +306,7 @@ def main() -> None:
             from guidance.obstacle_detector import ObstacleDetector
             from guidance.spatial_locator import SpatialLocator
             from navigation.navigation_controller import NavigationController
+            from matching.temporal_filter import TargetTracker
 
             # BUG FIX B1: NavigationController must receive the normalized target
             # (e.g. "cell phone", not "phone") because its internal matcher
@@ -316,6 +321,7 @@ def main() -> None:
                 locator=SpatialLocator(),
                 obstacle_detector=ObstacleDetector(),
                 speaker=speaker,
+                tracker=TargetTracker(),
             )
         else:
             target_matcher = TargetMatcher(supported_classes=detector.class_names)

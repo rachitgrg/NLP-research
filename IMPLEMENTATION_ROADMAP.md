@@ -18,7 +18,9 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
 ## R2 — Honest detector baseline and default-model decision
 
 - **Objective:** decide between the stock 80-class `yolov8n.pt` and the fine-tuned 15-class model using a clean test set.
+- **Why now:** desk trials (audit §7c) show the main remaining failure is a bottle with a face or person directly behind it (15–77% of frames). The COCO analysis showed the stock model holds up better with a person present (bottle recall 47% vs 40% at 0.40).
 - **Tasks:**
+  0. ~~Quick desk check with stock `yolov8n.pt`~~ **Done (audit §7c):** stock was worse in both face scenes (6.7% vs 15.3% and 53.9% vs 76.9% raw @0.25). The fine-tuned model stays the default. The remaining tasks below are now about the paper (clean val2017 numbers), not about the app.
   1. Download COCO val2017 images (~1 GB; approval required).
   2. Write `module-2/evaluate_baseline.py`: both models, the same 15 classes, val2017 only, reporting mAP50 / mAP50-95 per class and FPS on the RTX 3050.
   3. Record results in `module-2/results_summary.txt` (or a new file) and `research/`.
@@ -51,8 +53,15 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
 
 ## R5 — Temporal stability and guidance UX
 
-- **Tasks:** N-of-M frame confirmation before announcing "found"; smooth the bbox centre over time; a "not seen yet, keep turning slowly" cadence; with several matches, prefer the nearest/largest or use parser attributes (R6).
-- **Files:** `navigation/navigation_controller.py`, new `matching/temporal_filter.py`.
+- **Done:**
+  - 2-of-5 frame confirmation and a 0.5 s hold (`matching/temporal_filter.py`).
+  - Requested class accepted from 0.25.
+  - Speech cadence: new direction after 1.2 s, identical message after 4 s, short phrases.
+  - Desk trials: lost events went 22 → 0 (bottle at 2 m) and 9 → 0 (person behind).
+- **Remaining:**
+  - Smooth the bbox centre so zone changes don't jitter at zone borders.
+  - With several matches, prefer the nearest or largest, or use parser attributes (R6).
+  - Interruptible speech for emergencies.
 - **Acceptance:** unit tests with noisy detection sequences; no guidance flip-flopping in manual testing.
 
 ## R6 — Attribute-aware target selection (lightweight referring expressions)

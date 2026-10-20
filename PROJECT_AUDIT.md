@@ -50,7 +50,7 @@ Interfaces:
 | Component | Status | Evidence |
 |---|---|---|
 | Module 1 unit tests | Implemented and verified | [V] 77/77 pass |
-| Module 3 unit tests | Implemented and verified | [V] 152/152 pass in `.venv` |
+| Module 3 unit tests | Implemented and verified | [V] 170/170 pass in `.venv` |
 | Sarvam STT + translation | Implemented and verified (manual) | [M] English and Hindi requests extracted the correct target; 10-utterance benchmark: 2.0% WER |
 | Query parser | Implemented, simple English only | [R] rule-based; picks one object noun; attributes (color / size / position) extracted but not yet used downstream |
 | Voice → vision bridge | **Repaired**, verified at import level | [V] previously `MODULE1_AVAILABLE=False` (package-name clash); now `True` when Module 1 packages are present |
@@ -78,6 +78,8 @@ Interfaces:
 | 5 | Emergency / arrival speech forced every frame, so stale audio piled up | Identical text repeats only after the cooldown (all priorities); newer messages replace stale pending ones of equal or lower priority; controller no longer forces per-frame messages | `audio_feedback/tts_speaker.py`, `navigation/navigation_controller.py` | [V] 4 new tests |
 | 6 | Search only ended with Q in the video window; arrival did not end it; no timeout; a dead camera looped forever | Arrival confirmed over N frames ends the session; 60 s no-sighting timeout (not blocked by obstacles); ENTER-in-terminal cancel; stop after 50 failed reads | `navigation/navigation_controller.py`, `detection/camera_detector.py`, `config/config.py` | [V] 7 new tests incl. fake-camera loop |
 | 7 | `assistant.py --camera` was ignored; `train.py` used `shutil` without importing it; `train.py --resume` wrote "validation not run" | Pass `camera_index`; add import; validate `best.pt` after resume | `assistant.py`, `module-2/train.py` | [V] parse/import check (training not re-run) |
+| 8 | Spoken guidance stopped after the first message: a reused pyttsx3 engine in a worker thread spoke once, and later `runAndWait()` calls returned in 0.07 s silently | Windows SAPI5 via comtypes (synchronous); pyttsx3 with a fresh engine elsewhere; error when speech can't start; warning when an utterance returns in < 0.15 s; identical messages repeat after 4 s; shorter phrases; rate 220 | `audio_feedback/tts_speaker.py`, `guidance/*.py`, `navigation_controller.py`, `config.py` | [V] real engine 1.65–1.95 s per update, all 5 zones spoken, camera loop gap ≤ 52 ms; [M] user heard every direction change |
+| 9 | Bottle detection flickered (≈70% per frame near a person) and the 0.40 threshold rejected real bottles | Requested class accepted from 0.25 (others stay 0.40); `TargetTracker`: found after 2 of 5 frames, 0.5 s hold; measurement tool `tools/detection_trials.py` | `detection/yolo_detector.py`, `matching/temporal_filter.py`, `navigation_controller.py`, `main.py`, `assistant.py` | [V] 170 tests; [M] desk trials §7c |
 
 Not changed (by design): model weights, datasets, notebooks, research outputs, `results_summary.txt` (still shows the resume-overwritten text; the real metrics are in `runs/train/results.csv`).
 
@@ -128,14 +130,47 @@ Setup: Windows laptop, RTX 3050, built-in webcam (index 0), Bluetooth headset mi
 
 Scope: a functional pass/fail check by one tester. It is not a usability study or an accuracy benchmark.
 
+## 7c. Desk detection trials (user-run, 2026-10-20, `tools/detection_trials.py`)
+
+Setup: laptop webcam at 30 FPS, fine-tuned `best.pt`, target `bottle`, one 15 s run per scene (~450 frames). Each frame was run through the model once. **OLD** = confidence ≥ 0.40 per frame; **NEW** = target accepted from 0.25 + `TargetTracker` (2-of-5, 0.5 s hold), computed from the same frames.
+
+| Scene | Raw @0.40 | Raw @0.25 | Found OLD | Found NEW | Lost events OLD → NEW | Longest gap OLD → NEW | Median conf |
+|---|---|---|---|---|---|---|---|
+| Alone, plain background | 100.0% | 100.0% | 100.0% | 99.8% | 0 → 0 | 0.00 → 0.02 s | 0.96 |
+| Person behind | 95.1% | 98.9% | 95.1% | 99.8% | 9 → 0 | 0.26 → 0.02 s | 0.82 |
+| Far, ~2 m | 81.6% | 91.6% | 81.6% | 99.8% | 22 → 0 | 0.35 → 0.03 s | 0.58 |
+| Dim light | 84.5% | 87.1% | 84.5% | 95.1% | 5 → 2 | 0.90 → 0.45 s | 0.79 |
+| Moving slowly, no face behind | 99.3% | 99.6% | 99.3% | 99.8% | 1 → 0 | 0.10 → 0.05 s | 0.93 |
+| Moving slowly, face behind | 69.8% | 76.9% | 69.8% | 86.5% | 12 → 2 | 2.10 → 1.40 s | 0.70 |
+| Held in front of face | 0.7% | 15.3% | 0.7% | 48.2% * | 1 → 6 | 7.62 → 2.15 s | 0.21 |
+| No bottle (false-positive check) | 0.0% | 0.0% | 0.0% | 0.0% | — | — | — |
+
+\* Mostly the 0.5 s hold stretching sparse detections, so guidance partly reuses the last known position.
+
+Findings:
+- NEW removes nearly all flicker when the model sees the bottle at all (person behind, distance, dim light), with no false bottles in the bottle-free scene.
+- Motion alone did not hurt (99.3%). **A face or person directly behind the bottle is the main failure**: confidence collapses (median 0.21 when held at the face). This is a model limitation that thresholds and smoothing cannot remove. It matches the COCO analysis, where a person in the image lowered bottle recall most for the fine-tuned model, and the stock 80-class model did better.
+- Limits: one tester, one webcam, one bottle, one run per scene. Indicative, not a benchmark.
+
+**Stock `yolov8n.pt` (80 classes) on the two face scenes** (separate runs, same desk, minutes later):
+
+| Scene | Model | Raw @0.40 | Raw @0.25 | Found OLD | Found NEW | Lost events OLD → NEW | Median conf |
+|---|---|---|---|---|---|---|---|
+| Held in front of face | fine-tuned | 0.7% | 15.3% | 0.7% | 48.2% | 1 → 6 | 0.21 |
+| Held in front of face | stock | 0.0% | 6.7% | 0.0% | 27.5% | 0 → 3 | 0.17 |
+| Moving slowly, face behind | fine-tuned | 69.8% | 76.9% | 69.8% | 86.5% | 12 → 2 | 0.70 |
+| Moving slowly, face behind | stock | 42.8% | 53.9% | 42.8% | 81.4% | 18 → 3 | 0.43 |
+
+At this desk the fine-tuned model is better in both face scenes, which runs against the COCO-photo comparison. Decision: **keep the fine-tuned model as the default.** Caveat: the runs per model were separate, so hand position and lighting were not identical.
+
 ## 8. Remaining limitations and open issues
 
 1. Hardware testing so far is a single user at a desk with a laptop webcam. There is no forward-facing-camera or multi-room test yet, and no success-rate or time-to-find measurements (roadmap R7).
 2. No detection for objects outside the model's classes (watch, keys, slippers).
 3. Parser attributes (color / position) are ignored, so with several bottles the system picks the highest-confidence one.
 4. Left/right is image-space and is correct only if the camera faces the same way as the user. "Reached" is a class-agnostic area heuristic.
-5. No temporal smoothing: one noisy frame can switch guidance.
-6. pyttsx3 calls `runAndWait()` in a worker thread. This works with Windows SAPI5, but a long utterance cannot be interrupted by an emergency message.
+5. A bottle held in front of the face (or with a face directly behind it) is detected unreliably (15–77% of frames at 0.25). This is a model limitation; see R2.
+6. Speech is synchronous: an utterance in progress (~1.7 s) cannot be interrupted by an emergency message; newer messages replace queued ones.
 7. Speech recognition needs internet (Sarvam). An offline fallback (faster-whisper) exists for evaluation but is not wired into the app.
 8. `ObstacleDetector` lists classes (bench, refrigerator, toilet) that the 15-class model never outputs.
 9. Absolute paths in generated files (`module-2/dataset.yaml`, `runs/train/args.yaml`, `run_training.bat`) tie training to `D:\NLP-Research`.

@@ -22,6 +22,7 @@ from config.config import ARRIVAL_CONFIRM_FRAMES, SEARCH_TIMEOUT_S
 from guidance.obstacle_detector import ObstacleDetector, ObstacleReport
 from guidance.spatial_locator import SpatialLocation, SpatialLocator
 from matching.target_matcher import TargetMatcher
+from matching.temporal_filter import TargetTracker
 from navigation.navigation_state import NavigationState, NavigationStep
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,7 @@ class NavigationController:
         searching_cooldown_s: float = 3.5,
         arrival_confirm_frames: int = ARRIVAL_CONFIRM_FRAMES,
         search_timeout_s: float = SEARCH_TIMEOUT_S,
+        tracker: Optional[TargetTracker] = None,
     ) -> None:
         self.raw_target = target_name
         self.target_name = target_name.strip().lower()
@@ -52,6 +54,8 @@ class NavigationController:
         self.speaker = speaker or TTSSpeaker(use_mock=True)
 
         self.searching_cooldown_s = searching_cooldown_s
+        # Optional temporal smoothing of matches (None = per-frame results).
+        self.tracker = tracker
         self.arrival_confirm_frames = max(1, arrival_confirm_frames)
         self.search_timeout_s = search_timeout_s
 
@@ -96,6 +100,8 @@ class NavigationController:
 
         # Step 1: Match target object
         match_result = self.matcher.match(self.target_name, detections)
+        if self.tracker is not None:
+            match_result = self.tracker.update(match_result, now)
         is_found = match_result.get("found", False)
         reason = match_result.get("reason")
 
@@ -244,4 +250,6 @@ class NavigationController:
         self.finish_reason = None
         self._arrival_streak = 0
         self._session_start_time = None
+        if self.tracker is not None:
+            self.tracker.reset()
         self.speaker.clear()

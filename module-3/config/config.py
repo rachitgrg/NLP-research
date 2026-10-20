@@ -93,6 +93,17 @@ PROXIMITY_FAR_THRESHOLD: float = float(os.environ.get("PROXIMITY_FAR_THRESHOLD",
 PROXIMITY_APPROACHING_THRESHOLD: float = float(os.environ.get("PROXIMITY_APPROACHING_THRESHOLD", "0.22"))
 ARRIVAL_AREA_THRESHOLD: float = float(os.environ.get("ARRIVAL_AREA_THRESHOLD", "0.22"))
 
+# ── Target detection reliability ──────────────────────────────
+# The requested object is accepted from this confidence; every other class
+# still needs CONFIDENCE_THRESHOLD (set equal to it to disable).
+TARGET_CONFIDENCE_THRESHOLD: float = float(os.environ.get("TARGET_CONFIDENCE_THRESHOLD", "0.25"))
+# Temporal smoothing: target "found" only after MIN_HITS matches in the last
+# WINDOW frames; once found, gaps up to TARGET_HOLD_S keep the last box.
+# TARGET_CONFIRM_MIN_HITS=1 and TARGET_HOLD_S=0 disable smoothing.
+TARGET_CONFIRM_WINDOW: int = int(os.environ.get("TARGET_CONFIRM_WINDOW", "5"))
+TARGET_CONFIRM_MIN_HITS: int = int(os.environ.get("TARGET_CONFIRM_MIN_HITS", "2"))
+TARGET_HOLD_S: float = float(os.environ.get("TARGET_HOLD_S", "0.5"))
+
 # ── Session control ───────────────────────────────────────────
 # Consecutive "reached" frames needed before the search ends as ARRIVED
 # (filters out single-frame detection glitches).
@@ -110,6 +121,10 @@ TTS_SPEECH_COOLDOWN_S: float = float(os.environ.get("TTS_SPEECH_COOLDOWN_S", "2.
 # "Bottle is on your left").  New messages only wait for the shorter gap
 # derived from TTS_SPEECH_COOLDOWN_S.
 TTS_REPEAT_COOLDOWN_S: float = float(os.environ.get("TTS_REPEAT_COOLDOWN_S", "4.0"))
+# Silence spoken before each message (Windows SAPI only).  Bluetooth headsets
+# clip the start of audio while their link wakes up ("ottle" for "bottle");
+# the silence absorbs that.  0 disables.
+TTS_LEAD_SILENCE_MS: int = int(os.environ.get("TTS_LEAD_SILENCE_MS", "250"))
 TTS_SPEECH_RATE: int = int(os.environ.get("TTS_SPEECH_RATE", "220"))  # Words per minute (220 ≈ SAPI rate +2)
 TTS_SPEECH_VOLUME: float = float(os.environ.get("TTS_SPEECH_VOLUME", "1.0"))  # 0.0 - 1.0
 TTS_ENABLED: bool = os.environ.get("TTS_ENABLED", "true").lower() in ("true", "1", "yes")
