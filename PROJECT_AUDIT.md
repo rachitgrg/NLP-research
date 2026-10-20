@@ -2,7 +2,7 @@
 
 *Audit date: 2026-10-20. Covers the repository at commit `3fb09d9` plus the repairs listed in §5.*
 
-Evidence labels: **[V]** verified by running code/tests in this audit · **[R]** verified by reading code/files · **[I]** inference (stated reasoning, not directly tested).
+Evidence labels: **[V]** verified by running code/tests in this audit · **[M]** verified by the user in a manual hardware test · **[R]** verified by reading code/files · **[I]** inference (stated reasoning, not directly tested).
 
 ---
 
@@ -50,8 +50,8 @@ Interfaces:
 | Component | Status | Evidence |
 |---|---|---|
 | Module 1 unit tests | Implemented and verified | [V] 77/77 pass |
-| Module 3 unit tests | Implemented and verified | [V] 151/151 pass in `.venv` (150 + 1 skipped in legacy `module-3/venv`) |
-| Sarvam STT + translation | Implemented, not re-tested in this audit | [R] needs network + API key; 10-utterance benchmark: 2.0% WER |
+| Module 3 unit tests | Implemented and verified | [V] 152/152 pass in `.venv` |
+| Sarvam STT + translation | Implemented and verified (manual) | [M] English and Hindi requests extracted the correct target; 10-utterance benchmark: 2.0% WER |
 | Query parser | Implemented, simple English only | [R] rule-based; picks one object noun; attributes (color / size / position) extracted but not yet used downstream |
 | Voice → vision bridge | **Repaired**, verified at import level | [V] previously `MODULE1_AVAILABLE=False` (package-name clash); now `True` when Module 1 packages are present |
 | Inference device | **Repaired** | [V] previously defaulted to `cuda` and crashed with CPU-only torch; now automatic |
@@ -59,13 +59,13 @@ Interfaces:
 | Detector on a real image | Verified (no camera) | [V] COCO image → cup ×2, bottle ×2; "bottle" → "Bottle is on your right. Turn slightly right." |
 | Supported-target check | **Repaired** | [V] now uses the loaded model's classes ("clock" is unsupported with the 15-class model) |
 | Speech flood | **Repaired** | [V] persistent hazard used to queue 60 utterances in 60 frames; now ≤ 1 |
-| Session end (arrival / timeout / cancel) | **Implemented**, unit-tested with a fake camera | [V] tests; [ ] needs a manual hardware check |
+| Session end (arrival / timeout / cancel / unsupported) | Implemented and verified | [V] unit tests + [M] hardware run |
 | Spatial zones | Implemented and verified (unit tests) | [R] 5 zones from the bbox centre x (20/40/60/80% boundaries) |
 | Distance | Heuristic only | [R] "reached" = bbox ≥ 22% of the frame area, with the same threshold for every class; no metric distance |
 | Obstacle detection | Implemented, unit-tested | [R] class list includes `bench`, `refrigerator`, `toilet`, which the 15-class model cannot detect |
 | Unsupported objects (watch, keys, slippers) | Not implemented | [R] rejected with a spoken message |
 | RefCOCO grounding | Not implemented | [R] data used for EDA only |
-| Camera / mic / speakers end-to-end | **Unknown — needs a manual run** | Hardware output cannot be observed from this audit |
+| Camera / mic / speakers end-to-end | Implemented and verified (manual, desk setup) | [M] 14-check manual test, all passed (§7b) |
 
 ## 5. Repairs made in this audit
 
@@ -105,9 +105,32 @@ Not changed (by design): model weights, datasets, notebooks, research outputs, `
 | `.venv`: bridge import | `MODULE1_AVAILABLE = True` |
 | `.venv`: fine-tuned model inference on GPU (640 px, single image, 50 runs) | 8.8 ms/frame (≈113 FPS model-only; camera + drawing not included) |
 
+## 7b. Manual hardware test (user-run, 2026-10-20)
+
+Setup: Windows laptop, RTX 3050, built-in webcam (index 0), Bluetooth headset mic/output, root `.venv`, commit `dd01459`.
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Environment + CUDA | Pass |
+| 2 | Module 1 tests (77) | Pass |
+| 3 | Module 3 tests (152) | Pass |
+| 4 | Live camera + YOLO detection | Pass |
+| 5 | Typed target matching (found / not found) | Pass |
+| 6 | Direction guidance (left / centre / right) | Pass |
+| 7 | Arrival stop | Pass |
+| 8 | ENTER cancellation | Pass |
+| 9 | 15 s timeout | Pass |
+| 10 | Unsupported targets (watch, clock) | Pass |
+| 11 | Obstacle warnings without queue flooding | Pass |
+| 12 | English voice → target → guidance | Pass |
+| 13 | Hindi voice → correct target | Pass |
+| 14 | Failure handling (silence, unclear speech, unsupported request) | Pass |
+
+Scope: a functional pass/fail check by one tester. It is not a usability study or an accuracy benchmark.
+
 ## 8. Remaining limitations and open issues
 
-1. Hardware loop not yet verified: camera + microphone + speakers + Sarvam API (manual run required).
+1. Hardware testing so far is a single user at a desk with a laptop webcam. There is no forward-facing-camera or multi-room test yet, and no success-rate or time-to-find measurements (roadmap R7).
 2. No detection for objects outside the model's classes (watch, keys, slippers).
 3. Parser attributes (color / position) are ignored, so with several bottles the system picks the highest-confidence one.
 4. Left/right is image-space and is correct only if the camera faces the same way as the user. "Reached" is a class-agnostic area heuristic.
