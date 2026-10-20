@@ -13,6 +13,29 @@ from pathlib import Path
 # ── Project root (module-3/ directory) ────────────────────────
 MODULE_ROOT = Path(__file__).resolve().parent.parent
 
+# ── Expected Python environment ───────────────────────────────
+# The integrated assistant needs the repository-root .venv (voice + vision
+# packages).  Other interpreters on this machine lack some of them, which
+# shows up later as confusing "No module named ..." errors.
+EXPECTED_VENV = MODULE_ROOT.parent / ".venv"
+
+
+def environment_warning() -> str | None:
+    """Return a warning if not running from EXPECTED_VENV, else None."""
+    import sys
+
+    if Path(sys.prefix).resolve() == EXPECTED_VENV.resolve():
+        return None
+    return (
+        "WARNING: not running from the project environment.\n"
+        f"  Current Python : {sys.executable}\n"
+        f"  Expected       : {EXPECTED_VENV / 'Scripts' / 'python.exe'}\n"
+        "  Voice input and speech output may be unavailable.\n"
+        "  Fix: run  ..\\.venv\\Scripts\\Activate.ps1  (from module-3), or call\n"
+        "       ..\\.venv\\Scripts\\python.exe main.py ...  directly."
+    )
+
+
 # ── YOLO Model ────────────────────────────────────────────────
 # Fine-tuned YOLOv8n on 15-class indoor assistive-navigation subset.
 # Trained for 30 epochs on COCO train2014 → mAP@50 = 48.1%
@@ -130,7 +153,15 @@ TTS_SPEECH_VOLUME: float = float(os.environ.get("TTS_SPEECH_VOLUME", "1.0"))  # 
 TTS_ENABLED: bool = os.environ.get("TTS_ENABLED", "true").lower() in ("true", "1", "yes")
 
 # ── Milestone 5 — Obstacle Detection & Avoidance ──────────────
-OBSTACLE_DETECTION_ENABLED: bool = os.environ.get("OBSTACLE_DETECTION_ENABLED", "true").lower() in ("true", "1", "yes")
+# Seconds the last seen target box is remembered for the obstacle check, so
+# the person/table holding a flickering target is not reported as blocking.
+OBSTACLE_TARGET_MEMORY_S: float = float(os.environ.get("OBSTACLE_TARGET_MEMORY_S", "2.0"))
+# Classes that can HOLD the target (box contains the target) and are then
+# not reported as blocking it.  Furniture is deliberately not included.
+OBSTACLE_HOLDER_CLASSES: tuple[str, ...] = tuple(
+    c.strip() for c in os.environ.get("OBSTACLE_HOLDER_CLASSES", "person").split(",") if c.strip()
+)
+OBSTACLE_DETECTION_ENABLED: bool =os.environ.get("OBSTACLE_DETECTION_ENABLED", "true").lower() in ("true", "1", "yes")
 OBSTACLE_CORRIDOR_LEFT: float = float(os.environ.get("OBSTACLE_CORRIDOR_LEFT", "0.25"))
 OBSTACLE_CORRIDOR_RIGHT: float = float(os.environ.get("OBSTACLE_CORRIDOR_RIGHT", "0.75"))
 OBSTACLE_CORRIDOR_Y_MIN: float = float(os.environ.get("OBSTACLE_CORRIDOR_Y_MIN", "0.35"))

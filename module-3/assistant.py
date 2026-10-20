@@ -28,6 +28,7 @@ from config.config import (
     INFERENCE_IMG_SIZE,
     TARGET_CONFIDENCE_THRESHOLD,
     YOLO_MODEL_PATH,
+    environment_warning,
 )
 from detection.camera_detector import run_camera_loop
 from detection.yolo_detector import YOLODetector
@@ -105,9 +106,13 @@ def run_assistant(
     model_path: str = YOLO_MODEL_PATH,
     device: str = INFERENCE_DEVICE,
     use_mock_audio: bool = False,
+    obstacles: bool = True,
 ) -> None:
     """Run full interactive assistive navigation session."""
     print(ASSISTANT_BANNER)
+    env_warning = environment_warning()
+    if env_warning:
+        print(f"{env_warning}\n")
     speaker = TTSSpeaker(use_mock=use_mock_audio)
 
     raw_target = target
@@ -178,7 +183,7 @@ def run_assistant(
         target_name=normalized,
         matcher=TargetMatcher(supported_classes=detector.class_names),
         locator=SpatialLocator(),
-        obstacle_detector=ObstacleDetector(),
+        obstacle_detector=ObstacleDetector() if obstacles else ObstacleDetector(enabled=False),
         speaker=speaker,
         tracker=TargetTracker(),
     )
@@ -201,6 +206,8 @@ def main() -> None:
     parser.add_argument("--conf", type=float, default=CONFIDENCE_THRESHOLD, help="YOLO confidence threshold")
     parser.add_argument("--device", type=str, default=INFERENCE_DEVICE, help="Inference device (cpu/cuda)")
     parser.add_argument("--mock-audio", action="store_true", help="Print audio cues to terminal instead of pyttsx3")
+    parser.add_argument("--no-obstacles", action="store_true",
+                        help="Disable obstacle warnings (desk testing with a webcam that faces you)")
     args = parser.parse_args()
 
     run_assistant(
@@ -211,6 +218,7 @@ def main() -> None:
         conf=args.conf,
         device=args.device,
         use_mock_audio=args.mock_audio,
+        obstacles=not args.no_obstacles,
     )
 
 

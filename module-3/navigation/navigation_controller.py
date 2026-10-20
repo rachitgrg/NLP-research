@@ -18,7 +18,7 @@ import time
 from typing import Any, Optional
 
 from audio_feedback.tts_speaker import SpeechPriority, TTSSpeaker
-from config.config import ARRIVAL_CONFIRM_FRAMES, SEARCH_TIMEOUT_S
+from config.config import ARRIVAL_CONFIRM_FRAMES, OBSTACLE_TARGET_MEMORY_S, SEARCH_TIMEOUT_S
 from guidance.obstacle_detector import ObstacleDetector, ObstacleReport
 from guidance.spatial_locator import SpatialLocation, SpatialLocator
 from matching.target_matcher import TargetMatcher
@@ -44,6 +44,7 @@ class NavigationController:
         arrival_confirm_frames: int = ARRIVAL_CONFIRM_FRAMES,
         search_timeout_s: float = SEARCH_TIMEOUT_S,
         tracker: Optional[TargetTracker] = None,
+        obstacle_target_memory_s: float = OBSTACLE_TARGET_MEMORY_S,
     ) -> None:
         self.raw_target = target_name
         self.target_name = target_name.strip().lower()
@@ -71,6 +72,11 @@ class NavigationController:
         self.finish_reason: Optional[str] = None
         self._arrival_streak: int = 0
         self._session_start_time: Optional[float] = None
+
+        # Last target box, for the obstacle check (see process_frame step 3).
+        self.obstacle_target_memory_s = obstacle_target_memory_s
+        self._last_target_bbox: Optional[list[int]] = None
+        self._last_target_bbox_time: float = 0.0
 
     def process_frame(
         self,
@@ -146,13 +152,24 @@ class NavigationController:
                     is_arrived=False,
                 )
 
-        # Step 3: Evaluate obstacles in path
-        matched_class = match_result.get("matched_class")
+        # Step 3: Evaluate obstacles in path.  The target's box (current, or
+        # last seen within OBSTACLE_TARGET_MEMORY_S) is passed so the person or
+        # furniture holding the target is not reported as blocking it.
+        if is_found and match_result.get("bbox"):
+            self._last_target_bbox = match_result["bbox"]
+            self._last_target_bbox_time = now
+        recent_target_bbox = (
+            self._last_target_bbox
+            if self._last_target_bbox is not None
+            and (now - self._last_target_bbox_time) <= self.obstacle_target_memory_s
+            else None
+        )
         obstacle_report = self.obstacle_detector.evaluate(
             detections=detections,
             frame_width=frame_width,
             frame_height=frame_height,
-            target_class=matched_class,
+            target_class=match_result.get("matched_class") or self.target_name,
+            target_bbox=recent_target_bbox,
         )
 
         # Priority Check: Immediate Obstacle Hazard
@@ -250,6 +267,8 @@ class NavigationController:
         self.finish_reason = None
         self._arrival_streak = 0
         self._session_start_time = None
+        self._last_target_bbox = None
+        self._last_target_bbox_time = 0.0
         if self.tracker is not None:
             self.tracker.reset()
         self.speaker.clear()

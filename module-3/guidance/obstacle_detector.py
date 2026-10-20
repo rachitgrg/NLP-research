@@ -18,6 +18,7 @@ from config.config import (
     OBSTACLE_CORRIDOR_RIGHT,
     OBSTACLE_CORRIDOR_Y_MIN,
     OBSTACLE_DETECTION_ENABLED,
+    OBSTACLE_HOLDER_CLASSES,
     OBSTACLE_MIN_AREA_RATIO,
 )
 
@@ -79,7 +80,9 @@ class ObstacleDetector:
         corridor_y_min: float = OBSTACLE_CORRIDOR_Y_MIN,
         min_area_ratio: float = OBSTACLE_MIN_AREA_RATIO,
         obstacle_classes: tuple[str, ...] = OBSTACLE_CLASSES,
+        holder_classes: tuple[str, ...] = OBSTACLE_HOLDER_CLASSES,
     ) -> None:
+        self.holder_classes = set(c.lower() for c in holder_classes)
         self.enabled = enabled
         self.corridor_left = corridor_left
         self.corridor_right = corridor_right
@@ -93,6 +96,7 @@ class ObstacleDetector:
         frame_width: int,
         frame_height: int,
         target_class: Optional[str] = None,
+        target_bbox: Optional[list[int]] = None,
     ) -> ObstacleReport:
         """
         Evaluate frame detections for walking hazards.
@@ -108,6 +112,12 @@ class ObstacleDetector:
         target_class : str | None
             The class of the target object being searched for.
             Instances of the target class itself are excluded from being treated as obstacles.
+        target_bbox : [x1, y1, x2, y2] | None
+            Current (or recently seen) target box.  A holder-class object
+            (default: person) whose box contains the target's centre is
+            treated as holding the target, so it is not reported as
+            blocking the way to it.  Without depth this cannot tell
+            "holding" from "standing in front of"; see PROJECT_AUDIT.md.
 
         Returns
         -------
@@ -122,6 +132,10 @@ class ObstacleDetector:
             )
 
         target_normalized = target_class.lower().strip() if target_class else None
+        target_center: Optional[tuple[float, float]] = None
+        if target_bbox and len(target_bbox) == 4:
+            tx1, ty1, tx2, ty2 = target_bbox
+            target_center = ((tx1 + tx2) / 2.0, (ty1 + ty2) / 2.0)
         hazards: list[ObstacleHazard] = []
 
         for det in detections:
@@ -143,6 +157,18 @@ class ObstacleDetector:
             x1, y1, x2, y2 = bbox
             min_x, max_x = min(x1, x2), max(x1, x2)
             min_y, max_y = min(y1, y2), max(y1, y2)
+
+            # A person whose box contains the target is holding it: not a
+            # blocker.  Furniture is NOT exempted: "bottle on the chair" and
+            # "chair in front of the bottle" look identical in 2D, and the
+            # chair may genuinely be in the way.
+            if (
+                target_center
+                and class_name in self.holder_classes
+                and min_x <= target_center[0] <= max_x
+                and min_y <= target_center[1] <= max_y
+            ):
+                continue
 
             box_w = max(0, max_x - min_x)
             box_h = max(0, max_y - min_y)

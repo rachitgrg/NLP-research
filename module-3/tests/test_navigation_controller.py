@@ -191,3 +191,28 @@ def test_unsupported_target_finishes_session():
     nc = NavigationController("watch", speaker=TTSSpeaker(enabled=True, use_mock=True))
     nc.process_frame([], 640, 480)
     assert nc.finish_reason == "unsupported"
+
+
+def test_bottle_held_by_person_gets_guidance_not_obstacle_warning(monkeypatch):
+    """Regression: 'Stop. Person ahead.' replaced all guidance while the user held the bottle."""
+    import navigation.navigation_controller as mod
+    clock = [100.0]
+    monkeypatch.setattr(mod.time, "monotonic", lambda: clock[0])
+    nc = NavigationController("bottle", speaker=TTSSpeaker(enabled=True, use_mock=True),
+                              obstacle_detector=ObstacleDetector(enabled=True), search_timeout_s=0)
+    person = {"class_name": "person", "class_id": 0, "confidence": 0.85, "bbox": [160, 112, 591, 480]}
+    bottle = {"class_name": "bottle", "class_id": 5, "confidence": 0.5, "bbox": [301, 111, 385, 328]}
+
+    step = nc.process_frame([person, bottle], 640, 480)
+    assert step.state == NavigationState.GUIDING
+    assert "bottle" in step.spoken_instruction.lower()
+
+    # Bottle flickers out for 1 s: the person holding it is still not an obstacle.
+    clock[0] += 1.0
+    step = nc.process_frame([person], 640, 480)
+    assert step.state != NavigationState.OBSTRUCTED
+
+    # Long after the bottle was last seen, the person counts as an obstacle again.
+    clock[0] += 5.0
+    step = nc.process_frame([person], 640, 480)
+    assert step.state == NavigationState.OBSTRUCTED

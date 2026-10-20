@@ -48,6 +48,7 @@ from config.config import (
     INFERENCE_IMG_SIZE,
     TARGET_CONFIDENCE_THRESHOLD,
     YOLO_MODEL_PATH,
+    environment_warning,
 )
 from detection.camera_detector import run_camera_loop
 from detection.yolo_detector import YOLODetector
@@ -157,6 +158,15 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--no-obstacles",
+        action="store_true",
+        default=False,
+        help=(
+            "Disable obstacle warnings. Use for desk testing with a webcam that "
+            "faces you: otherwise you yourself are reported as 'Person ahead'."
+        ),
+    )
+    parser.add_argument(
         "--no-tts",
         action="store_true",
         default=False,
@@ -227,6 +237,10 @@ def _get_target_via_voice(duration: int) -> str | None:
 
 def main() -> None:
     args = parse_args()
+
+    env_warning = environment_warning()
+    if env_warning:
+        print(f"\n{env_warning}\n")
 
     # ── Validate mutually exclusive flags ──────────────────────
     if args.target and args.voice:
@@ -319,7 +333,9 @@ def main() -> None:
                 target_name=nav_target,
                 matcher=TargetMatcher(supported_classes=detector.class_names),
                 locator=SpatialLocator(),
-                obstacle_detector=ObstacleDetector(),
+                obstacle_detector=(
+                    ObstacleDetector(enabled=False) if args.no_obstacles else ObstacleDetector()
+                ),
                 speaker=speaker,
                 tracker=TargetTracker(),
             )

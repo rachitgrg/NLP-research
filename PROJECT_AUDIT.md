@@ -170,6 +170,7 @@ At this desk the fine-tuned model is better in both face scenes, which runs agai
 3. Parser attributes (color / position) are ignored, so with several bottles the system picks the highest-confidence one.
 4. Left/right is image-space and is correct only if the camera faces the same way as the user. "Reached" is a class-agnostic area heuristic.
 5. A bottle held in front of the face (or with a face directly behind it) is detected unreliably (15–77% of frames at 0.25). This is a model limitation; see R2.
+5b. Obstacle logic assumes a forward-facing camera. At a desk the user is in view and is reported as "Person ahead" (use `--no-obstacles`). A person whose box contains the target is treated as holding it and not reported. Without depth, a person standing in front of the target is treated the same way. Furniture containing the target still warns ("bottle on chair" vs "chair in front of bottle" is ambiguous in 2D), so a bottle on a table can keep triggering "Stop. Dining table ahead." until proximity-aware warnings exist (R5).
 6. Speech is synchronous: an utterance in progress (~1.7 s) cannot be interrupted by an emergency message; newer messages replace queued ones.
 7. Speech recognition needs internet (Sarvam). An offline fallback (faster-whisper) exists for evaluation but is not wired into the app.
 8. `ObstacleDetector` lists classes (bench, refrigerator, toilet) that the 15-class model never outputs.

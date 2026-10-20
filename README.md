@@ -112,6 +112,7 @@ cd module-3; ..\.venv\Scripts\python -m pytest tests -q; cd ..
 # Run (from module-3/)
 cd module-3
 ..\.venv\Scripts\python main.py --target bottle --navigate   # typed target, spoken guidance
+..\.venv\Scripts\python main.py --target bottle --navigate --no-obstacles   # desk test: webcam faces you
 ..\.venv\Scripts\python assistant.py                         # fully voice-driven session
 ```
 

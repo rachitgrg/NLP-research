@@ -17,6 +17,7 @@
 ultralytics==8.4.172
 opencv-python==5.0.0.93
 pyttsx3==2.99
+comtypes==1.4.17; sys_platform == "win32"   # Windows SAPI speech (used directly)
 
 # ── Voice (Module 1) ──────────────────────────────────────────
 sarvamai==0.1.32

@@ -86,3 +86,14 @@ class TestConfigEnvOverrides:
 
 
 import pytest  # noqa: E402 — import after class definitions to keep tests clean
+
+
+def test_environment_warning_matches_interpreter():
+    import sys
+    from pathlib import Path
+    import config.config as cfg
+    in_venv = Path(sys.prefix).resolve() == cfg.EXPECTED_VENV.resolve()
+    warning = cfg.environment_warning()
+    assert (warning is None) == in_venv
+    if warning:
+        assert "Activate.ps1" in warning

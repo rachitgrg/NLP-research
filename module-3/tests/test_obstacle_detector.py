@@ -136,3 +136,37 @@ class TestObstacleDetectorEdgeCases:
         detections = [{"class_name": "chair", "confidence": 0.99, "bbox": [10, 10, 50, 50]}]
         report = detector.evaluate(detections, 0, 1000)
         assert report.has_hazard is False
+
+
+# ── Objects holding / supporting the target are not blockers ────
+
+def _person(bbox):
+    return {"class_name": "person", "class_id": 0, "confidence": 0.85, "bbox": bbox}
+
+
+def test_person_holding_target_is_not_a_hazard():
+    det = ObstacleDetector(enabled=True)
+    person = _person([160, 112, 591, 480])
+    report = det.evaluate([person], 640, 480, target_class="bottle", target_bbox=[301, 111, 385, 328])
+    assert report.has_hazard is False
+
+
+def test_person_not_containing_target_is_still_a_hazard():
+    det = ObstacleDetector(enabled=True)
+    person = _person([160, 112, 591, 480])
+    report = det.evaluate([person], 640, 480, target_class="bottle", target_bbox=[10, 10, 60, 100])
+    assert report.has_hazard is True
+
+
+def test_without_target_bbox_behaviour_unchanged():
+    det = ObstacleDetector(enabled=True)
+    report = det.evaluate([_person([160, 112, 591, 480])], 640, 480, target_class="bottle")
+    assert report.has_hazard is True
+
+
+def test_furniture_containing_target_is_still_a_hazard():
+    """'Bottle on chair' vs 'chair in front of bottle' is ambiguous in 2D: keep warning."""
+    det = ObstacleDetector(enabled=True)
+    chair = {"class_name": "chair", "class_id": 1, "confidence": 0.9, "bbox": [280, 200, 520, 480]}
+    report = det.evaluate([chair], 640, 480, target_class="bottle", target_bbox=[380, 250, 420, 330])
+    assert report.has_hazard is True
