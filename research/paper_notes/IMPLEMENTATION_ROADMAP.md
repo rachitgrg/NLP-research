@@ -1,6 +1,6 @@
 # Implementation Roadmap
 
-Based on the verified state in [PROJECT_AUDIT.md](PROJECT_AUDIT.md). Milestones are ordered by dependency: finish the **minimum viable system (R1–R4)** before the improvements (R5–R8).
+Based on the verified state in [PROJECT_AUDIT.md](../PROJECT_AUDIT.md). Milestones are ordered by dependency: finish the **minimum viable system (R1–R4)** before the improvements (R5–R8).
 
 Ground rules: small testable changes; never delete datasets, weights, or notebooks; any new download or install is approved first.
 
@@ -22,8 +22,8 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
 - **Tasks:**
   0. ~~Quick desk check with stock `yolov8n.pt`~~ **Done (audit §7c):** stock was worse in both face scenes (6.7% vs 15.3% and 53.9% vs 76.9% raw @0.25). The fine-tuned model stays the default. The remaining tasks below are now about the paper (clean val2017 numbers), not about the app.
   1. Download COCO val2017 images (~1 GB; approval required).
-  2. Write `module-2/evaluate_baseline.py`: both models, the same 15 classes, val2017 only, reporting mAP50 / mAP50-95 per class and FPS on the RTX 3050.
-  3. Record results in `module-2/results_summary.txt` (or a new file) and `research/`.
+  2. Write `module2_vision/training/evaluate_baseline.py`: both models, the same 15 classes, val2017 only, reporting mAP50 / mAP50-95 per class and FPS on the RTX 3050.
+  3. Record results in a new dated experiment in `research/experiments/`.
   4. Set the default `YOLO_MODEL_PATH` accordingly.
 - **Prerequisites:** R1.
 - **Acceptance:** a table of both models on val2017 + FPS; a written decision.
@@ -35,7 +35,7 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
 - **Approach (recommended):** a hybrid. If the target is in the YOLO model's classes, use it; otherwise use **YOLO-World v2** or **YOLOE** through the installed Ultralytics package, calling `set_classes([target])`.
 - **Tasks:**
   1. Download one open-vocab checkpoint (~25–50 MB, approval).
-  2. Add `OpenVocabDetector` with the same `detect(frame)` output format (`module-3/detection/`).
+  2. Add `OpenVocabDetector` with the same `detect(frame)` output format (`module2_vision/detection/`).
   3. Detector selection in `main.py` / `assistant.py`, with the model loaded once.
   4. Build a small self-recorded test set (e.g. 20 photos each of watch / keys / slippers / glasses) and measure precision/recall and FPS.
 - **Acceptance:** "watch" yields guidance on the test set with stated accuracy; ≥ 10 FPS on GPU.
@@ -98,7 +98,7 @@ flowchart LR
 
 ## Immediate next step — hardware smoke test (≈10 minutes)
 
-1. Open PowerShell in `D:\NLP-Research\module-3`.
+1. Open PowerShell in `D:\NLP-Research\module2_vision`.
 2. Run `..\.venv\Scripts\python main.py --target bottle --navigate`
 3. **Expect:**
    - The console shows `Device : cuda`.
@@ -107,7 +107,7 @@ flowchart LR
    - Show a bottle and you hear left/right/straight guidance.
    - Bring it close (filling about a quarter of the frame) and you hear "…directly in front of you" once, and the window closes.
 4. Run it again and press **ENTER** in the terminal. You should hear "Search cancelled." and the program exits.
-5. Run `..\.venv\Scripts\python assistant.py`, say "where is my bottle", and check that the transcript and the extracted target `bottle` are printed (needs `SARVAM_API_KEY` in `module-1\.env` and internet).
+5. Run `..\.venv\Scripts\python assistant.py`, say "where is my bottle", and check that the transcript and the extracted target `bottle` are printed (needs `SARVAM_API_KEY` in the root `.env` and internet).
 6. **If something differs:**
    - Camera error: try `--camera 1`.
    - No sound: try `--no-tts` to confirm the guidance logic, then check Windows speech voices.

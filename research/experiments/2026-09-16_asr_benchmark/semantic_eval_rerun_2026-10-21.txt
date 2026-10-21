@@ -1,0 +1,30 @@
+Loading NLP model...
+
+Evaluating Semantic Accuracy...
+==================================================
+SEMANTIC EVALUATION RESULTS
+==================================================
+--- REFERENCE ---
+Intent Accuracy:    100.0%
+Object Accuracy:    100.0%
+Attribute Accuracy: 100.0%
+Complete Accuracy:  100.0%
+
+--- SARVAM ---
+Intent Accuracy:    100.0%
+Object Accuracy:    100.0%
+Attribute Accuracy: 100.0%
+Complete Accuracy:  100.0%
+
+--- WHISPER_TINY ---
+Intent Accuracy:    100.0%
+Object Accuracy:    100.0%
+Attribute Accuracy: 100.0%
+Complete Accuracy:  100.0%
+
+--- WHISPER_BASE ---
+Intent Accuracy:    90.0%
+Object Accuracy:    100.0%
+Attribute Accuracy: 100.0%
+Complete Accuracy:  90.0%
+

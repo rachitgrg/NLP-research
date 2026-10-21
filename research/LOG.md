@@ -1,0 +1,68 @@
+# Research log
+
+Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 were reconstructed from git history and file dates. Old paths (`module-1/`, `module-2/`, `module-3/`) are mapped to new ones in `README.md`.
+
+---
+
+## 2026-10-21 — Correction: RefCOCO expressions double-counted
+- **What:** `refcoco_processed.csv` stacks the UNC and Google split files of RefCOCO, which contain the same 50,000 objects and expressions. Every expression appears twice: 133,784 unique, not 267,568. Absolute counts in the Stage-1 tables and figures (expressions, tokens, term frequencies) are doubled; percentages and averages are unaffected.
+- **Why it matters:** these numbers appear in the paper drafts. A future grounding split must use one scheme only.
+- **Action:** published tables and figures are left unchanged as historical records; the correction is documented. A decision is pending (D-09).
+- **Links:** `dataset/README.md`, `decisions.md` D-09, `paper_notes/claims_and_limitations.md`.
+
+## 2026-10-21 — Repository restructure + research/ set up as source of truth
+- **What:** `module-1/` → `module1_audio/` (now also holds TTS); `module-3/` + `module-2/` → `module2_vision/` (`training/`, `notebooks/`); datasets → `data/raw/`, processed CSVs → `data/processed/`, YOLO dataset → `data/yolo_dataset/` (gitignored); `.env` at the project root; legacy per-module venvs deleted; superseded files moved to `_to_delete/`.
+- **Research:** `research/` reorganised (`dataset/`, `experiments/`, `results/`, `baselines/`, `references/`, `paper_notes/`). Training curves and metrics, desk-trial data and the ASR results were frozen into `experiments/`. The semantic eval was re-run (it matches the published numbers exactly). `research/results/scripts/` was fixed (broken paths) and verified: all 8 tables regenerate byte-identical.
+- **Verification:** 96 + 160 tests pass (baseline before the move: 77 + 179; 19 TTS tests moved with TTS). GPU inference with `best.pt` and stock `yolov8n.pt` from the new paths works. All notebook and `train.py` paths resolve.
+- **Commits:** tag `pre-restructure-2026-10-21`, then `686e44e`, `317fd7f`, and the research/docs commits that follow.
+- **Links:** `decisions.md` D-12.
+
+## 2026-10-20 — Desk detection trials (fine-tuned vs stock)
+- 10 runs, 15 s each. The new threshold + smoothing removes almost all flicker; a face behind the bottle is the main failure. The fine-tuned model beat stock in both face scenes → it stays the default.
+- `experiments/2026-10-20_desk_detection_trials/` · commits `babe5f8`, `d667e5e`, `d93959f` · `decisions.md` D-05, D-06.
+
+## 2026-10-20 — TTS fixes (every update spoken; first-word clipping)
+- Switched to direct SAPI via comtypes; 250 ms lead silence; shorter phrases; rate 220.
+- Commits `2cb24a6`, `f410694` · `decisions.md` D-10.
+
+## 2026-10-20 — Manual end-to-end hardware test: 14/14 pass
+- `experiments/2026-10-20_manual_hardware_test/` · commit `a224f98`.
+
+## 2026-10-20 — Project audit and integration repairs
+- One environment; voice↔vision bridge fixed (package-name clash); CPU/GPU device auto-selection; supported targets taken from the model; speech flooding fixed; session end conditions (arrival, timeout, cancel).
+- `PROJECT_AUDIT.md` §5 · commits `684debe`, `dd01459` · `decisions.md` D-11.
+
+## 2026-10-20 — YOLOv8n 15-class fine-tune finished (started 2026-10-14)
+- 30 epochs on COCO train2014 (15 classes): P 0.567, R 0.467, mAP50 0.481, mAP50-95 0.331. The validation set probably overlaps the pretraining data, so these are optimistic.
+- `experiments/2026-10-20_yolov8n_15class_finetune/` · commit `3fb09d9` · `decisions.md` D-03, D-04.
+
+## 2026-10-14 — Fine-tuning started
+- `train.py` built the YOLO dataset (46,688 train / 3,000 val images, hard links) and started training on the RTX 3050. It was interrupted and resumed on 2026-10-20 02:10.
+
+## 2026-10-09 — Module 1 → Module 3 voice bridge; spatial guidance, obstacles, TTS (Milestones 4–5)
+- Commit `6594dd8` · `decisions.md` D-07.
+
+## 2026-10-05 — Real-time camera + YOLOv8n detection and target matching (Milestones 2–3)
+- Stock 80-class `yolov8n.pt` at this point. Commits `c2dbee5`, `65fed60`.
+
+## 2026-09-16 — ASR benchmark (3 models) + semantic evaluation; Stage-1 write-up
+- Audio was re-recorded after the audit found silent WAVs. Sarvam had WER 2.0 %, Whisper Tiny 4.5 %, Whisper Base 6.5 %; semantic accuracy (complete) was 100/100/90 %.
+- Stage-1 findings, paper draft, figures 01–13 and tables 01–08 were produced.
+- `experiments/2026-09-16_asr_benchmark/`, `results/`, `paper_notes/` · commits `cdf59d2`, `6726126` · `decisions.md` D-01, D-02.
+
+## 2026-09-16 — Stage-1 audit
+- Found the benchmark WAVs were silent; fixed the parser's last-noun object choice; Google split `test` accepted as a valid label.
+- `experiments/2026-09-16_asr_benchmark/STAGE_1_RESEARCH_AUDIT.md`.
+
+## 2026-09-15 — Notebooks 01–03: inspection, preprocessing, EDA
+- 604,906 COCO boxes kept (1 invalid removed); RefCOCO expressions deduplicated per split scheme; 14 EDA plots and 3 tables.
+- `dataset/` (snapshots dated 2026-09-15/16).
+
+## 2026-09-15 — ASR pilot, 2 models — INVALID
+- Both models scored 0 % because the WAVs were silent. `experiments/2026-09-15_asr_pilot_2model/`.
+
+## 2026-09-15 — Project set up
+- Commit `df8aa7e`.
+
+## 2026-09-14 — Datasets downloaded
+- COCO 2014 train images + train/val annotations; RefCOCO (UNC + Google split files). `dataset/README.md`.

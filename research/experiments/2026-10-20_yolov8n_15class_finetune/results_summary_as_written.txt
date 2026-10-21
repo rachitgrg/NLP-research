@@ -1,0 +1,53 @@
+=================================================================
+YOLO FINE-TUNING RESULTS SUMMARY
+Generated: 2026-10-20 06:14:24
+=================================================================
+
+TRAINING CONFIGURATION
+----------------------------------------
+  Base model   : yolov8n.pt
+  Dataset      : D:\NLP-Research\module-2\dataset.yaml
+  Classes      : 15
+  Epochs       : 30
+  Batch size   : 8
+  Image size   : 640
+  Device       : 0
+  Random seed  : 42
+  Train ratio  : 0.8
+  Training time: 0.00 hours (0 minutes)
+
+TARGET CLASSES
+----------------------------------------
+  [ 0] person
+  [ 1] chair
+  [ 2] dining table
+  [ 3] couch
+  [ 4] bed
+  [ 5] bottle
+  [ 6] cup
+  [ 7] bowl
+  [ 8] laptop
+  [ 9] cell phone
+  [10] book
+  [11] tv
+  [12] backpack
+  [13] umbrella
+  [14] suitcase
+
+VALIDATION RESULTS (best.pt)
+----------------------------------------
+  (Validation was not run or failed)
+
+OUTPUT FILES
+----------------------------------------
+  Best weights    : D:\NLP-Research\module-2\runs\train\weights\best.pt
+  Last weights    : D:\NLP-Research\module-2\runs\train\weights\last.pt
+  Training curves : D:\NLP-Research\module-2\runs\train\results.csv
+  Confusion matrix: D:\NLP-Research\module-2\runs\train\confusion_matrix.png
+
+NEXT STEPS
+----------------------------------------
+  1. Copy best.pt to module-3/
+  2. Update module-3/config/config.py: YOLO_MODEL_PATH = 'path/to/best.pt'
+  3. Run module-3: python main.py --target bottle --navigate
+=================================================================

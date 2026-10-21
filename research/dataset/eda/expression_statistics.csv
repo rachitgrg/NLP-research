@@ -1,0 +1,8 @@
+split,source,count,min_words,max_words,mean_words,median_words,p25_words,p75_words,p95_words
+test,google,13368,1,35,3.615,3.0,2.0,4.0,8.0
+testA,unc,5349,1,23,3.533,3.0,2.0,5.0,7.0
+testB,unc,4794,1,27,3.721,3.0,2.0,5.0,8.0
+train,google,107002,1,39,3.6,3.0,2.0,4.0,8.0
+train,unc,113373,1,39,3.596,3.0,2.0,4.0,8.0
+val,google,13414,1,27,3.616,3.0,2.0,4.0,8.0
+val,unc,10268,1,21,3.662,3.0,2.0,5.0,8.0

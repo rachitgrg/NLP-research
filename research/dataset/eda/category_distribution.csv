@@ -1,0 +1,81 @@
+category_name,coco_annotation_count,refcoco_expression_count
+person,185315,134252
+car,30785,3314
+chair,27147,5412
+book,17315,1468
+bottle,16983,1490
+cup,14513,2610
+dining table,11167,2790
+bowl,10064,5434
+traffic light,9159,576
+handbag,8778,288
+umbrella,7865,2064
+boat,7590,2192
+bird,7290,1328
+truck,7050,2456
+banana,6912,3032
+bench,6751,1072
+sheep,6654,3818
+kite,6560,432
+backpack,6200,304
+motorcycle,6021,3842
+potted plant,5918,1358
+cow,5686,3960
+wine glass,5618,1272
+carrot,5539,724
+knife,5536,66
+donut,4977,4136
+bicycle,4955,952
+broccoli,4927,2688
+skis,4698,56
+horse,4666,3844
+vase,4623,1814
+orange,4597,2284
+cake,4551,2954
+tie,4497,304
+cell phone,4460,568
+sports ball,4392,12
+clock,4328,642
+bus,4327,3052
+apple,4308,1702
+spoon,4287,78
+suitcase,4251,3198
+surfboard,4161,762
+remote,4122,504
+couch,4113,4012
+tv,4036,2012
+skateboard,4012,112
+pizza,4001,4460
+sink,3933,264
+fork,3918,4
+elephant,3905,5480
+airplane,3833,1128
+dog,3774,1784
+zebra,3685,5482
+giraffe,3596,5306
+teddy bear,3442,3792
+laptop,3415,1728
+tennis racket,3411,82
+cat,3301,1986
+train,3159,1912
+sandwich,3089,4298
+bed,2905,1748
+toilet,2873,1172
+baseball glove,2689,8
+baseball bat,2400,26
+oven,2302,630
+hot dog,2023,1226
+keyboard,1980,426
+snowboard,1960,288
+refrigerator,1875,680
+frisbee,1862,16
+mouse,1517,54
+toothbrush,1377,288
+stop sign,1372,24
+fire hydrant,1316,66
+microwave,1189,222
+scissors,1073,168
+bear,903,1050
+parking meter,833,530
+toaster,156,0
+hair drier,135,0
