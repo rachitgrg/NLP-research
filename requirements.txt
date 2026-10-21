@@ -1,8 +1,9 @@
-# requirements.txt — unified environment for the integrated assistant
-# (Module 1 voice + Module 3 vision in ONE Python process).
+# requirements.txt — one environment for the whole project
+# (module1_audio voice + speech output, module2_vision detection + training).
 #
-# Versions are pinned to the ones already working in module-1/venv and
-# module-3/venv. Python 3.13 (64-bit).
+# Python 3.13 (64-bit). Runtime versions are the ones verified in the root
+# .venv; the training/notebook section lists the versions those scripts were
+# actually run with (global Python 3.13, see research/experiments/).
 #
 # Setup (Windows PowerShell, from the repo root):
 #   python -m venv .venv
@@ -13,20 +14,29 @@
 # torch is installed separately (step 2) so pip gets the CUDA build for the
 # RTX 3050 instead of the CPU-only build from PyPI.
 
-# ── Vision (Module 3) ─────────────────────────────────────────
+# ── Vision runtime (module2_vision) ───────────────────────────
 ultralytics==8.4.172
 opencv-python==5.0.0.93
-pyttsx3==2.99
-comtypes==1.4.17; sys_platform == "win32"   # Windows SAPI speech (used directly)
 
-# ── Voice (Module 1) ──────────────────────────────────────────
+# ── Voice + speech output (module1_audio) ─────────────────────
 sarvamai==0.1.32
 python-dotenv==1.2.3
 spacy==3.8.16
 sounddevice==0.5.6
 soundfile==0.14.0
+pyttsx3==2.99
+comtypes==1.4.17; sys_platform == "win32"   # Windows SAPI speech (used directly)
 faster-whisper==1.2.1   # offline ASR (evaluation + future fallback)
 jiwer==4.0.0            # WER metric for evaluation scripts
+
+# ── Training + notebooks (module2_vision/training, notebooks) ─
+# Not yet installed in .venv: training and notebooks 01–03 ran under the
+# global Python 3.13 (ultralytics 8.4.177, pillow 11.2.1 there). Install when needed.
+pandas==2.3.1
+scikit-learn==1.7.1
+tqdm==4.70.1
+pillow==12.3.0         # .venv version (already required by ultralytics/matplotlib)
+ipykernel==6.30.1
 
 # ── Shared ────────────────────────────────────────────────────
 numpy==2.5.3
