@@ -1,100 +1,59 @@
 # Multimodal Audio-Visual Grounding Framework for Real-Time Assistive Navigation
-*(Stage-1 Implementation)*
 
-An end-to-end NLP and computer vision research project designed to build a real-time assistive navigation system for blind and low-vision users.
-
----
-
-## 1. Project Overview & Stage-1 Scope
-
-This repository currently implements **Stage 1** of the navigation framework. 
-It establishes the two foundational pillars required before visual grounding can occur:
-
-1. **Hearing & Understanding (Linguistic Pipeline)** — Capturing a spoken voice command, transcribing it to English, and extracting the user's intent, the target object, and its attributes using a rule-based NLP parser.
-2. **Dataset Preparation (Vision Foundation)** — Processing, cleaning, and validating the massive COCO 2014 and RefCOCO datasets to create a high-quality referring-expression dataset for future multimodal model training.
+A research project building an assistive object finder for blind and low-vision users: the user says what they are looking for, the camera finds it, and spoken directions guide them to it.
 
 > [!NOTE]
-> Since Stage 1, `module-3/` adds real-time camera detection, target matching, 5-zone direction guidance and offline speech output, and `module-2/train.py` adds a 15-class fine-tuned YOLOv8n.
-> **Not yet implemented:** free-text visual grounding (e.g. "the red bottle on the left"), detection of objects outside the model's class list (e.g. watch, keys), and metric distance estimation.
-> Current verified status: [PROJECT_AUDIT.md](PROJECT_AUDIT.md). Next steps: [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md).
+> **Implemented:** multilingual voice request → English text → rule-based parser → real-time 15-class YOLOv8n detection → 5-zone spoken direction guidance with obstacle warnings and arrival detection.
+> **Not yet implemented:** free-text visual grounding (e.g. "the red bottle on the left"), detection of objects outside the model's class list (watch, keys), and metric distance estimation.
+> Verified status: [research/PROJECT_AUDIT.md](research/PROJECT_AUDIT.md). Next steps: [research/paper_notes/IMPLEMENTATION_ROADMAP.md](research/paper_notes/IMPLEMENTATION_ROADMAP.md).
 
 ---
+
+## 1. Repository layout
+
+```
+NLP-Research/
+├── module1_audio/      # all sound: mic, Sarvam STT, spaCy parser, ASR benchmark, speech output (TTS)
+├── module2_vision/     # all vision: detection, matching, guidance, navigation, assistant entry points
+│   ├── training/       #   YOLOv8n 15-class fine-tuning (train.py), runs/ (gitignored)
+│   ├── notebooks/      #   COCO + RefCOCO inspection, preprocessing, EDA
+│   └── weights/        #   pretrained weights (gitignored)
+├── data/               # gitignored: raw/ (COCO 2014, RefCOCO), processed/ (CSVs), yolo_dataset/
+├── research/           # source of truth for the paper: log, decisions, dataset, experiments, results
+├── .env.example        # variable names (copy to .env)
+├── requirements.txt    # one environment for everything
+└── CLAUDE.md           # working rules for AI-assisted sessions
+```
+
+Module guides: [module1_audio/README.md](module1_audio/README.md) · [module2_vision/README.md](module2_vision/README.md) · [training](module2_vision/training/README.md) · [notebooks](module2_vision/notebooks/README.md)
 
 ## 2. Architecture
 
-**1. Linguistic Pipeline (Implemented):**  
-`Microphone → ASR (Sarvam/Whisper) → English Transcription → spaCy NLP Parser → Intent/Object/Attributes → [Future Visual Grounding]`
+`Microphone → Sarvam Saaras v3 (speech → English) → spaCy parser (intent / object / attributes) → target check against the model's classes → webcam → YOLOv8n (15 classes) → target matching + temporal smoothing → 5-zone spatial locator + corridor obstacles → speech output → arrival / timeout / cancel`
 
-**2. Dataset Foundation (Implemented):**  
-`COCO + RefCOCO → Validation → Preprocessing → Exploratory Data Analysis (EDA) → [Future Grounding Dataset]`
+Diagrams: [Stage-1 architecture](research/figures/fig_01_stage1_architecture.png) (voice part only) · [dataset pipeline](research/figures/fig_13_dataset_pipeline.png)
 
-**3. Camera, YOLO Detection & Assistive Navigation (Implemented — Milestones 2, 3, 4, 5):**  
-`Voice Input → Target Extraction → Webcam Capture → YOLOv8n Detection → Spatial Localization (5 Zones) → Corridor Obstacle Detection → Offline TTS Speech Guidance → Arrival Trigger`
+## 3. Research record
 
-*(See [System Architecture Diagram](research/figures/fig_01_stage1_architecture.png) and [Dataset Pipeline Diagram](research/figures/fig_13_dataset_pipeline.png))*
+Everything for the paper lives in [`research/`](research/README.md):
+[LOG](research/LOG.md) (what happened, when) · [decisions](research/decisions.md) · [dataset](research/dataset/README.md) · [experiments](research/experiments/) · [results manifest](research/results/MANIFEST.md) · [claims & limitations](research/paper_notes/claims_and_limitations.md) · [reproducibility](research/REPRODUCIBILITY.md)
 
----
+### Key results so far (see the claims file before citing)
+- **ASR pilot (10 utterances, 1 speaker):** Sarvam 2.0 % WER / 0.56 s · Whisper Tiny 4.5 % / 0.44 s · Whisper Base 6.5 % / 0.78 s. Semantic extraction (complete): 100 / 100 / 90 %.
+- **Detector:** fine-tuned YOLOv8n, 15 classes, mAP50 0.481 on a COCO train2014 hold-out. This is optimistic because the val images likely overlap the pretraining data.
+- **Desk trials:** the target-specific threshold plus smoothing removed most dropouts (22 → 0 lost events at 2 m). A face behind the object is the main failure.
+- **Datasets:** COCO train2014, 604,906 boxes (person 30.6 %); RefCOCO, 133,784 unique expressions for 50,000 objects (person 50.2 %). Stage-1 documents report 267,568 expressions because both split schemes were counted ([correction](research/dataset/README.md)).
 
-## 3. Completed Modules
+## 4. Limitations
+- The ASR benchmark has 10 controlled single-speaker English utterances, with no noisy-environment test.
+- Hardware tests were done by one user at a desk. There is no user study and no measured navigation success rate.
+- "Left/right" is in image space; "reached" is a box-area heuristic. There is no metric distance.
+- Objects outside the 15 classes are rejected; parser attributes (color/position) are not used yet.
+- Speech recognition needs internet (Sarvam).
 
-- **`module-1/`**: Voice pipeline containing microphone capture, a multi-model ASR framework, and the `spaCy` NLP parser. Includes a robust 77-case automated test suite.
-- **`module-2/`**: Jupyter notebooks dedicated to COCO and RefCOCO dataset inspection, bounding-box validation, split verification, and Linguistic EDA.
-- **`module-3/`**: Real-time vision, target matching, and assistive navigation pipeline:
-  - *Milestone 2*: YOLOv8n object detection on live webcam feed.
-  - *Milestone 3*: Spoken target normalization and matching.
-  - *Milestone 4*: Spatial localization (5 horizontal zones: far-left, left, center, right, far-right) and distance/proximity estimation.
-  - *Milestone 5*: Voice-first assistant (`assistant.py`), corridor obstacle avoidance, non-blocking offline TTS voice feedback, and arrival detection. 129 automated tests.
-- **`research/`**: The comprehensive academic research output of Stage 1, including formal findings, a faculty demonstration summary, and publication-ready graphs and tables.
+## 5. Setup & running
 
----
-
-## 4. Research Documents & Findings
-
-For a complete breakdown of the research methodology, dataset EDA, and analytical findings, please read the academic documentation:
-
-- 📄 **[Master Stage-1 Research Findings](research/STAGE_1_RESEARCH_FINDINGS.md)** *(Single source of truth)*
-- 📄 **[Faculty Demonstration Summary](research/FACULTY_DEMO_SUMMARY.md)** *(5-minute presentation overview)*
-- 📄 **[Paper Results & Discussion Draft](research/PAPER_RESULTS_DISCUSSION.md)** *(Publication draft)*
-- 📄 **[Reproducibility & Data Provenance](research/REPRODUCIBILITY.md)**
-
-### Key Benchmarks (10-Utterance Controlled Benchmark)
-
-#### ASR Benchmark Summary
-Evaluated on Word Error Rate (WER) and Mean Latency:
-- **Sarvam AI (Cloud):** 2.00% WER | 0.56s Latency *(Best Accuracy)*
-- **Whisper Tiny (Local):** 4.50% WER | 0.44s Latency *(Best Latency)*
-- **Whisper Base (Local):** 6.50% WER | 0.77s Latency
-
-*(See [Accuracy vs Latency Tradeoff](research/figures/fig_06_accuracy_latency_tradeoff.png) and [ASR WER Comparison](research/figures/fig_02_asr_wer.png))*
-
-#### Semantic Evaluation Summary
-Measures preservation of information needed by the downstream parser across the transcription outputs:
-- **Reference / Sarvam / Whisper Tiny:** 100% Complete Semantic Accuracy
-- **Whisper Base:** 90% Complete Semantic Accuracy
-
-*(See [Semantic Accuracy Comparison](research/figures/fig_07_semantic_accuracy.png))*
-
-#### COCO/RefCOCO Dataset Findings
-- **Cleaned Data:** 267,568 final expressions referring to 50,000 unique targets.
-- **Integrity:** 0 referential-integrity mismatches found after validation.
-- **Bias Alert:** Massive category imbalance detected. `person` accounts for ~30.6% of COCO annotations and ~50.2% of RefCOCO expressions, necessitating mitigation during Stage-2 training.
-
-*(See [RefCOCO Spatial Language](research/figures/fig_08_refcoco_spatial_terms.png) and [RefCOCO Category Imbalance](research/figures/fig_12_refcoco_category_distribution.png))*
-
----
-
-## 5. Limitations
-
-- The ASR and semantic benchmark is limited to 10 controlled, single-speaker, English utterances. No real-world noisy environment or statistically massive audio benchmark has been conducted.
-- The NLP parser relies on rigid syntactic rules and struggles with complex multi-object conjunctions.
-- Downstream visual grounding is not yet implemented.
-
----
-
-## 6. Setup & Running the Integrated Assistant
-
-Voice (Module 1) and vision (Module 3) run in **one** Python environment at the repository root.
-Requires Python 3.13 (64-bit) on Windows; an NVIDIA GPU is optional (CPU works, slower).
+Python 3.13 (64-bit) on Windows; an NVIDIA GPU is optional (CPU works, slower).
 
 ```powershell
 # One-time setup, from the repository root
@@ -102,45 +61,21 @@ python -m venv .venv
 .\.venv\Scripts\python -m pip install torch==2.11.0 torchvision --index-url https://download.pytorch.org/whl/cu128
 .\.venv\Scripts\python -m pip install -r requirements.txt
 .\.venv\Scripts\python -m spacy download en_core_web_sm
-copy module-1\.env.example module-1\.env   # then put your SARVAM_API_KEY in module-1\.env
+copy .env.example .env      # then put your SARVAM_API_KEY in .env
 
 # Verify
 .\.venv\Scripts\python -c "import torch; print('CUDA:', torch.cuda.is_available())"
-cd module-1; ..\.venv\Scripts\python -m pytest tests -q; cd ..
-cd module-3; ..\.venv\Scripts\python -m pytest tests -q; cd ..
+cd module1_audio; ..\.venv\Scripts\python -m pytest tests -q; cd ..
+cd module2_vision; ..\.venv\Scripts\python -m pytest tests -q; cd ..
 
-# Run (from module-3/)
-cd module-3
-..\.venv\Scripts\python main.py --target bottle --navigate   # typed target, spoken guidance
+# Run (from module2_vision/)
+cd module2_vision
+..\.venv\Scripts\python main.py --target bottle --navigate                  # typed target, spoken guidance
 ..\.venv\Scripts\python main.py --target bottle --navigate --no-obstacles   # desk test: webcam faces you
-..\.venv\Scripts\python assistant.py                         # fully voice-driven session
+..\.venv\Scripts\python assistant.py                                        # fully voice-driven session
 ```
 
 Stop a session with **ENTER** in the terminal, **Q** in the video window, or Ctrl+C. It also stops automatically on arrival or after 60 s without seeing the target.
-The camera must face the same direction as the user (e.g. phone/chest camera) for "left/right" to be correct.
+The camera must face the same direction as the user (e.g. a phone or chest camera) for "left/right" to be correct.
 
----
-
-## 7. Reproducibility
-
-To reproduce the Stage-1 benchmarking and tests:
-
-```powershell
-# 1. Activate Environment
-cd module-1
-.\venv\Scripts\Activate.ps1
-
-# 2. Run the ASR Benchmark (Requires SARVAM_API_KEY in .env)
-python evaluation\evaluate_models.py
-
-# 3. Generate the Comparison Graphs
-python evaluation\plot_results.py
-
-# 4. Run the Semantic Evaluation
-python evaluation\semantic_eval.py
-
-# 5. Run the Unit Test Suite (77 passing tests)
-pytest tests\ -v
-```
-
-See [REPRODUCIBILITY.md](research/REPRODUCIBILITY.md) for full data provenance details and dataset generation instructions.
+Data for training and the notebooks goes in `data/raw/` (see [notebooks/README](module2_vision/notebooks/README.md)); reproduction steps are in [research/REPRODUCIBILITY.md](research/REPRODUCIBILITY.md). Never commit `.env` or anything under `data/`.

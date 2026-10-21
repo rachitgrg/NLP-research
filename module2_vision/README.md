@@ -66,15 +66,12 @@ Combines all components into an autonomous voice assistant for visually impaired
 ## Folder Structure
 
 ```
-module-3/
+module2_vision/
 │
 ├── config/
 │   ├── __init__.py
-│   └── config.py              # ALL tuneable parameters (thresholds, corridors, TTS)
-│
-├── audio_feedback/            # Milestone 5: Voice feedback engine
-│   ├── __init__.py
-│   └── tts_speaker.py         # Asynchronous, debounced pyttsx3 speech synthesizer
+│   └── config.py              # ALL vision tuneables (thresholds, corridors, model path)
+│                              # + add_module1_to_path() for the speech engine
 │
 ├── guidance/                  # Milestone 4 & 5: Spatial math & safety
 │   ├── __init__.py
@@ -109,17 +106,29 @@ module-3/
 │   ├── test_target_matcher.py # Target normalizer + matcher tests
 │   ├── test_spatial_locator.py# Milestone 4 spatial zone + proximity tests
 │   ├── test_obstacle_detector.py # Milestone 5 obstacle detection & detour tests
-│   ├── test_tts_speaker.py    # Milestone 5 TTS queue and debounce tests
 │   ├── test_navigation_controller.py # State machine lifecycle tests
 │   ├── test_assistive_pipeline.py # End-to-end 5-step assistive flow tests
 │   └── test_m3_integration.py # Integration test suite
 │
+├── tools/
+│   ├── detection_trials.py    # Controlled webcam detection trials (measurement tool)
+│   └── results/               # detection_trials.csv (appended per run)
+│
+├── training/                  # YOLOv8n fine-tuning (see training/README.md)
+│   ├── train.py, test_model.py, dataset.yaml, results_summary.txt
+│   ├── job.sh, run_training.bat
+│   └── runs/                  # Ultralytics output incl. weights/best.pt (gitignored)
+│
+├── notebooks/                 # COCO + RefCOCO inspection, preprocessing, EDA (see notebooks/README.md)
+├── weights/                   # pretrained yolov8n.pt etc. (gitignored)
 ├── assistant.py               # Dedicated voice-first assistant runner for blind users
 ├── main.py                    # Multi-mode entry point (M2, M3, M4/M5 --navigate)
-├── requirements.txt
-├── .gitignore
 └── README.md                  # This file
 ```
+
+Speech output (`audio_feedback/`, TTS) lives in `../module1_audio/` together with the rest of the
+audio code. `config.add_module1_to_path()` makes it importable; `main.py`, `assistant.py` and
+`tests/conftest.py` call it. Data lives in `../data/` (gitignored, override with `DATA_DIR`).
 
 ---
 
@@ -130,9 +139,9 @@ module-3/
 | Property | Value |
 |---|---|
 | Default model | YOLOv8n **fine-tuned on 15 indoor classes** (Module 2, `train.py`) |
-| Weights file | `../module-2/runs/train/weights/best.pt` (local only, not in git) |
+| Weights file | `training/runs/train/weights/best.pt` (local only, not in git) |
 | Classes | person, chair, dining table, couch, bed, bottle, cup, bowl, laptop, cell phone, book, tv, backpack, umbrella, suitcase |
-| Alternative | `--model yolov8n.pt` — stock COCO model, 80 classes (auto-downloaded) |
+| Alternative | `--model weights/yolov8n.pt` — stock COCO model, 80 classes |
 | Inference | `cuda` if the installed torch build sees a GPU, otherwise `cpu` (override with `--device` / `INFERENCE_DEVICE`) |
 
 Whether a requested target is "supported" is decided from the **loaded model's own class list**,
@@ -244,18 +253,14 @@ open-vocabulary fallback:
 
 ## Setup
 
-**Recommended:** use the unified environment at the repository root (`.venv`, CUDA torch),
-which contains both Module 1 (voice) and Module 3 (vision) dependencies — required for
-`--voice` and `assistant.py`. See the root `README.md` → *Setup*.
+Use the unified environment at the repository root (`.venv`, CUDA torch), which contains the
+voice, speech-output and vision dependencies. See the root `README.md` → *Setup*.
 
 ```powershell
-# From inside module-3/, using the root environment
+# From inside module2_vision/, using the root environment
 ..\.venv\Scripts\Activate.ps1
 python main.py
 ```
-
-The older module-local `module-3/venv` (CPU-only torch, no voice packages) still works for
-vision-only runs and the test suite.
 
 ---
 
@@ -306,7 +311,7 @@ python main.py --voice
 python main.py --voice --duration 8
 ```
 > Requires Module 1 dependencies (spaCy, sarvam-ai, python-dotenv) and
-> a valid `SARVAM_API_KEY` in `../module-1/.env`.
+> a valid `SARVAM_API_KEY` in the project-root `.env`.
 
 ### M3 terminal output examples
 
@@ -367,7 +372,7 @@ All default values live in [`config/config.py`](config/config.py):
 
 | Config variable | Default | Env variable override |
 |---|---|---|
-| `YOLO_MODEL_PATH` | `../module-2/runs/train/weights/best.pt` | `YOLO_MODEL_PATH` |
+| `YOLO_MODEL_PATH` | `training/runs/train/weights/best.pt` | `YOLO_MODEL_PATH` |
 | `CONFIDENCE_THRESHOLD` | `0.40` | `CONFIDENCE_THRESHOLD` |
 | `INFERENCE_IMG_SIZE` | `640` | `INFERENCE_IMG_SIZE` |
 | `INFERENCE_DEVICE` | auto (`cuda` if torch sees a GPU, else `cpu`) | `INFERENCE_DEVICE` |
@@ -378,14 +383,19 @@ All default values live in [`config/config.py`](config/config.py):
 | `SEARCH_TIMEOUT_S` | `60` (0 = off) | `SEARCH_TIMEOUT_S` |
 | `MAX_CONSECUTIVE_READ_FAILURES` | `50` | `MAX_CONSECUTIVE_READ_FAILURES` |
 
+Speech settings (`TTS_*`) are in `../module1_audio/audio_feedback/tts_config.py`, overridable with
+the same environment variables.
+
 ---
 
 ## Running the Tests
 
-```bash
-# From inside module-3/ with the venv activated
-pytest tests/ -v
+```powershell
+# From inside module2_vision/, with the root environment
+..\.venv\Scripts\python -m pytest tests -q
 ```
+
+The TTS tests moved to `module1_audio/tests/test_tts_speaker.py` with the speech engine.
 
 The tests use **mocking** — no camera, no model download, and no GPU are required.
 

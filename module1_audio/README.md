@@ -45,10 +45,14 @@ You say (in Hindi): *"मेरी काली बोतल कहाँ है
 ## Folder Structure
 
 ```
-module-1/
+module1_audio/
 │
 ├── audio/
 │   └── microphone.py          # Records audio from the default microphone
+│
+├── audio_feedback/            # Speech output (moved here from Module 3 on 2026-10-21)
+│   ├── tts_speaker.py         # Non-blocking, debounced TTS (Windows SAPI / pyttsx3)
+│   └── tts_config.py          # TTS_* settings (env-var overridable)
 │
 ├── speech/
 │   └── sarvam_stt.py          # Sarvam AI Saaras v3 speech-to-English API wrapper
@@ -61,7 +65,6 @@ module-1/
 │   └── hearing_pipeline.py    # Wires speech + NLP together into one call
 │
 ├── evaluation/
-│   ├── evaluate.py            # (Legacy) 2-model benchmark
 │   ├── evaluate_models.py     # Benchmarks Whisper Tiny, Whisper Base, and Sarvam AI
 │   ├── record_samples.py      # Records the 10 benchmark WAV files from the microphone
 │   ├── metrics.py             # WER, CER, Exact Match, and accuracy computation helpers
@@ -82,14 +85,17 @@ module-1/
 │   ├── test_sarvam_stt.py         # Unit tests for the Sarvam STT wrapper (mocked)
 │   ├── test_evaluation_metrics.py # Unit tests for WER/CER/accuracy helpers
 │   ├── test_evaluation_graph.py   # Unit tests for the graph generator
-│   └── test_semantic_eval.py      # Unit tests for semantic evaluation
+│   ├── test_semantic_eval.py      # Unit tests for semantic evaluation
+│   └── test_tts_speaker.py        # TTS queue, debounce and engine tests
 │
 ├── conftest.py                # pytest config (adds module root to sys.path)
 ├── main.py                    # Entry point — run the interactive voice pipeline
-├── requirements.txt           # Python dependencies with install instructions
-├── .env.example               # Template for the required Sarvam API key
 └── README.md                  # This file
 ```
+
+Dependencies are in the root `requirements.txt`; the API key goes in the root `.env`
+(template: root `.env.example`). Benchmark results of record are frozen in
+`../research/experiments/2026-09-16_asr_benchmark/`.
 
 ---
 
@@ -112,38 +118,16 @@ module-1/
 
 ## Setup
 
-### Step 1 — Create and activate a virtual environment
+Use the project environment at the repository root (`.venv`). The root `README.md` → *Setup*
+creates it from the root `requirements.txt` and downloads the spaCy model.
 
 ```powershell
-# Windows (PowerShell) — run from inside module-1/
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-```
-
-```bash
-# macOS / Linux
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### Step 2 — Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Step 3 — Download the spaCy English model (run once)
-
-```bash
-python -m spacy download en_core_web_sm
-```
-
-### Step 4 — Set up your Sarvam API key
-
-```bash
-# Copy the template and edit it
-cp .env.example .env
+# From the repository root: set up your Sarvam API key once
+copy .env.example .env
 # Open .env and paste your key from https://dashboard.sarvam.ai/
+
+cd module1_audio
+..\.venv\Scripts\Activate.ps1
 ```
 
 ---
@@ -174,7 +158,7 @@ Press `q` then **Enter** to quit.
 The evaluation benchmarks **Sarvam AI** (cloud), **Whisper Tiny** (local), and **Whisper Base** (local) on 10 pre-recorded English sentences.
 
 ```bash
-# From the module-1/ directory:
+# From the module1_audio/ directory:
 
 # Step 1: Record the 10 benchmark samples (only needed once)
 python evaluation/record_samples.py
@@ -190,17 +174,19 @@ python evaluation/semantic_eval.py
 ```
 
 Results are saved to `evaluation/results.csv` and `evaluation/comparison_graph_v2.png`.
+⚠ `evaluate_models.py` **overwrites** `evaluation/results.csv`. Before a new run, keep the old file;
+afterwards, record the run as a new dated experiment in `../research/experiments/`.
 
 ---
 
 ## Running Tests
 
 All tests use mocking — no microphone, no API key, and no audio files are needed (except the pre-recorded WAV samples in `evaluation/audio/`).
-There are a total of 77 pytest cases covering the pipeline, NLP parser, and evaluation modules.
+There are 96 pytest cases covering the pipeline, NLP parser, evaluation modules and TTS engine.
 
-```bash
-# Run all tests from inside module-1/
-pytest tests/ -v
+```powershell
+# From inside module1_audio/
+..\.venv\Scripts\python -m pytest tests -q
 ```
 
 ---
@@ -208,7 +194,7 @@ pytest tests/ -v
 ## Required Inputs
 
 - A microphone connected to your computer
-- A Sarvam AI API key (set in `.env`)
+- A Sarvam AI API key (set in the project-root `.env`)
 - Internet connection (for the Sarvam AI cloud API)
 
 ---
