@@ -4,7 +4,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 
 | ID | Decision | Date | Status |
 |---|---|---|---|
-| D-01 | Sarvam Saaras v3 as the runtime speech recogniser | 2026-09-16 | Active |
+| D-01 | Sarvam Saaras v3 as the runtime speech recogniser | 2026-09-16 | **Superseded by D-15** (2026-10-23) |
 | D-02 | Rule-based spaCy parser with dependency-based object choice | 2026-09-16 | Active |
 | D-03 | Detector restricted to 15 indoor COCO classes | 2026-10-14 | Active |
 | D-04 | Detector split: image-level 80/20 of COCO train2014, seed 42, val ≤ 3,000 | 2026-10-14 | Active (known leakage, see D-04) |
@@ -18,10 +18,14 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-12 | One environment (root `.venv`) and one repository layout | 2026-10-21 | Active |
 | D-13 | Open-vocabulary fallback: YOLOE-26s text prompt, alongside the closed-set model | 2026-10-23 | Active |
 | D-14 | Prompt map: "keys"/"key" → model prompt `bunch of keys` | 2026-10-23 | Active (approved by the user 2026-10-23) |
+| D-15 | On-device speech recognition (faster-whisper, translate) replaces Sarvam; Sarvam opt-in and paper baseline | 2026-10-23 | Active; model size pending EXP-08 |
+| D-16 | Fully offline by default (project USP); laptop prototype for the paper, phone/glasses later | 2026-10-23 | Active (user direction) |
+| D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table is a draft pending native review |
 
 ---
 
 ### D-01 · Sarvam Saaras v3 for speech recognition
+- **Superseded by D-15 (2026-10-23):** the app is offline by default. Sarvam remains an opt-in backend and the cloud reference in EXP-08.
 - **Decision:** the app uses Sarvam Saaras v3 (`mode="translate"`, automatic language detection), so any supported language arrives as English text. faster-whisper stays for evaluation and as a possible offline fallback.
 - **Why:** it had the lowest WER in the pilot (2.0 % vs 4.5 % for Whisper Tiny and 6.5 % for Whisper Base), and speech-to-English translation happens in one call.
 - **Trade-off:** it needs internet, and its latency includes the network (0.56 s mean vs 0.44 s for Whisper Tiny).
@@ -92,3 +96,36 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 - **Decision (2026-10-23, approved by the user):** when the user asks for "keys" or "key", the open-vocabulary model gets the prompt `bunch of keys`; speech still uses the user's word ("Keys, left."). Other targets keep their own word as the prompt ("watch" is already the best watch prompt). Implemented as `OPEN_VOCAB_PROMPTS` in `module2_vision/config/config.py` (env format `target=prompt1|prompt2;…`), applied in `detection/detector_factory.py`; mapped words the model can't search for fall back to the target word.
 - **Evidence:** `experiments/2026-10-23_prompt_wording/` (EXP-07): keys on a table 99.7 % found with `bunch of keys` vs 0 % with `key`, `keys`, `keychain`, `car key`; 0 % false sightings in a "no keys" scene.
 - **Open risks:** one recording per scene; keys held in the hand still 0 %; false positives with a person in view untested for this prompt.
+
+### D-15 · On-device speech recognition
+- **Decision (2026-10-23):** the app recognises speech on the laptop with faster-whisper (`task="translate"`: any language → English text, so the parser of D-02 is unchanged). This is `ASR_BACKEND=whisper`, the default, in `module1_audio/speech/whisper_stt.py`, chosen through `speech/transcriber_factory.py`. Settings live in `speech/asr_config.py`:
+  - `ASR_MODEL_SIZE` (default `large-v3`, provisional);
+  - `ASR_LANGUAGE` (the user's language; default `auto`);
+  - device and compute type (auto: GPU `int8_float16`, CPU `int8`).
+- Sarvam (`ASR_BACKEND=sarvam`) needs `OFFLINE_MODE=false` and stays the cloud reference for EXP-08.
+- **Why:** offline operation is the project's USP (D-16). Whisper is the only offline candidate that translates to English in one step, it is MIT-licensed, and it was already a dependency (EXP-02).
+- **Rejected:**
+  - `large-v3-turbo`: not trained for translation.
+  - SeamlessM4T / MMS: CC-BY-NC, which blocks the final product.
+- **Still open:** the model size and whether Indic languages are routed to AI4Bharat IndicConformer + IndicTrans2 (MIT). EXP-08 decides, by object accuracy per language with ≤ 2 s latency (`experiments/2026-10-23_multilingual_offline_asr/`).
+- **Evidence so far:** English smoke test only, 10/10 objects with tiny/base on the GPU at ~0.1 s (EXP-08 smoke). No multilingual evidence yet.
+
+### D-16 · Offline by default; laptop prototype for the paper
+- **Decision (2026-10-23, user direction):**
+  - Every session runs without internet. `OFFLINE_MODE` (default on) sets `YOLO_OFFLINE`, `HF_HUB_OFFLINE` and `TRANSFORMERS_OFFLINE` before model libraries load, which stops Ultralytics' online check, telemetry and auto-update.
+  - Missing model files fail fast (`module2_vision/tools/offline_check.py` is the pre-flight).
+  - The paper uses the laptop prototype. The phone/glasses product is future work, supported by CPU-only measurements (EXP-10) rather than a rewrite.
+- **Why:** cloud assistants (e.g. Gemini) need a connection. Offline also means privacy (no audio or video leaves the device), no network latency, and working without connectivity.
+- **Caveat for the paper:** on-device object detection alone is not new. Google Lookout describes on-device vision, and several apps advertise offline detection. The claim must be the combination: offline multilingual spoken request + open-vocabulary target + continuous guidance to arrival, measured against a cloud baseline. Check related work before writing "first".
+- **Not yet verified:** a full session with the network physically off (EXP-09).
+
+### D-17 · Replies in the user's language
+- **Decision (2026-10-23):**
+  - Every spoken sentence lives in one table, `module2_vision/guidance/phrases.py`, with per-language object names. English is unchanged; Hindi is a draft.
+  - Replies use the recogniser's language when that language has a table **and** an installed voice (Windows SAPI, `audio_feedback/tts_speaker.py` `voice_languages()`); otherwise they fall back to English. `REPLY_LANGUAGE` (`auto` or a code) overrides this.
+  - No machine translation at runtime.
+- **Why:** the guidance vocabulary is small and fixed (~15 templates), so reviewed tables are more reliable than MT and cost nothing at runtime.
+- **Open:**
+  - The Hindi table must be checked by a native speaker. It is worded so no verb agrees with the object's gender.
+  - This machine has English voices only, so Hindi replies need a Windows Hindi voice (install approval).
+  - Other languages need their own table and voice; until then they get English replies (a stated limitation).

@@ -1,0 +1,9 @@
+timestamp,device,gpu,torch,ultralytics,imgsz,conf,runs,image,model,kind,load_s,set_target_s,median_ms,p90_ms,fps_model_only,bottle_confs,vocab_hits
+2026-10-23 03:18:40,cuda,NVIDIA GeForce RTX 3050 6GB Laptop GPU,2.11.0+cu128,8.4.172,640,0.25,100,COCO_train2014_000000000714.jpg,best.pt,closed-set,2.36,0.0,8.07,9.57,123.9,0.42;0.32,
+2026-10-23 03:18:40,cuda,NVIDIA GeForce RTX 3050 6GB Laptop GPU,2.11.0+cu128,8.4.172,640,0.25,100,COCO_train2014_000000000714.jpg,yoloe-26s-seg.pt,yoloe,0.06,0.44,16.92,20.23,59.1,0.76;0.70;0.26,any (text prompt)
+2026-10-23 03:19:08,cuda,NVIDIA GeForce RTX 3050 6GB Laptop GPU,2.11.0+cu128,8.4.172,640,0.25,100,COCO_train2014_000000000714.jpg,yoloe-26s-seg.pt,yoloe,0.08,0.41,20.08,22.21,49.8,0.76;0.70;0.26,any (text prompt)
+2026-10-23 03:19:08,cuda,NVIDIA GeForce RTX 3050 6GB Laptop GPU,2.11.0+cu128,8.4.172,640,0.25,100,COCO_train2014_000000000714.jpg,best.pt,closed-set,0.14,0.0,8.89,11.15,112.5,0.42;0.32,
+2026-10-23 05:06:35,cpu,NVIDIA GeForce RTX 3050 6GB Laptop GPU,2.11.0+cu128,8.4.172,640,0.25,30,COCO_train2014_000000000714.jpg,best.pt,closed-set,1.73,0.0,22.59,23.98,44.3,0.42;0.32,
+2026-10-23 05:06:35,cpu,NVIDIA GeForce RTX 3050 6GB Laptop GPU,2.11.0+cu128,8.4.172,640,0.25,30,COCO_train2014_000000000714.jpg,yoloe-26s-seg.pt,yoloe,0.09,0.7,73.62,75.37,13.6,0.76;0.70;0.26,any (text prompt)
+2026-10-23 05:06:47,cpu,NVIDIA GeForce RTX 3050 6GB Laptop GPU,2.11.0+cu128,8.4.172,320,0.25,30,COCO_train2014_000000000714.jpg,best.pt,closed-set,1.46,0.0,10.43,11.72,95.9,0.26,
+2026-10-23 05:06:47,cpu,NVIDIA GeForce RTX 3050 6GB Laptop GPU,2.11.0+cu128,8.4.172,320,0.25,30,COCO_train2014_000000000714.jpg,yoloe-26s-seg.pt,yoloe,0.07,0.52,29.22,31.72,34.2,0.30,any (text prompt)

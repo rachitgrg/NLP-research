@@ -240,9 +240,8 @@ def run_voice_pipeline(audio_path: str) -> dict[str, Any] | None:
     if not MODULE1_AVAILABLE or _HearingPipeline is None:
         raise RuntimeError(
             "Module 1 (HearingPipeline) is not available. "
-            "Make sure Module 1 dependencies are installed:\n"
-            "  pip install spacy sarvam-ai python-dotenv\n"
-            "  python -m spacy download en_core_web_sm\n"
+            "Make sure Module 1 dependencies are installed (root requirements.txt:\n"
+            "faster-whisper, spaCy + en_core_web_sm; sarvamai only for ASR_BACKEND=sarvam).\n"
             "Or use --target <object> to skip voice input."
         )
 

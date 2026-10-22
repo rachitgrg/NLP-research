@@ -22,13 +22,19 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 | C14 | Text-prompt YOLOE-26s beats prompt-free YOLOE-26s and YOLO-World v2 for a worn watch on identical frames (99.7 % vs 76.4 % vs 18.3 %) | ✅ one scene, one recording | [M]+[V] same |
 | C15 | Prompt wording matters for open-vocabulary detection: keys on a table were found in 99.7 % of frames with "bunch of keys" vs 0 % with "key"/"keys"/"keychain"/"car key" on the same frames; for a watch, "watch" beat all alternatives | ✅ one recording per scene | [M]+[V] `experiments/2026-10-23_prompt_wording/` |
 | C16 | Objects held in the hand (watch, keys) are not detected with any tested prompt | ✅ as a negative result, one recording each | [M]+[V] same |
+| C17 | On-device Whisper (tiny/base, translate) extracted the correct object from all 10 English pilot utterances, at ~0.1 s per request on the RTX 3050 and 0.2–0.4 s on the laptop CPU | ✅ English pilot only (the EXP-02 clips, one speaker); says nothing about other languages | [V] `experiments/2026-10-23_multilingual_offline_asr/` (smoke), `experiments/2026-10-23_edge_feasibility/` |
+| C18 | Without a GPU (Ryzen 5 7640HS), the closed-set detector runs at 22.6 ms/frame and the open-vocabulary YOLOE-26s at 73.6 ms/frame at 640 px (29.2 ms at 320 px) | ✅ speed only, model-only, one image; 320 px accuracy not measured | [V] `experiments/2026-10-23_edge_feasibility/` |
+| C19 | The full assistant runs with no network connection | ⏳ not yet: library flags and file checks are in place and unit-tested, but no session has run with the network off (EXP-09) | [R]+[V] D-16 |
+| C20 | Multilingual offline recognition accuracy (object accuracy per language vs Sarvam) | ⏳ EXP-08 not run | — |
 
 ## Must NOT be claimed (current state)
 - **Audio-visual grounding / referring-expression comprehension.** The system detects fixed classes; attributes such as color and position are parsed but ignored (`decisions.md` D-08).
 - **Distance or navigation accuracy.** "Reached" is a box-area heuristic (≥ 22 % of the frame), and left/right is in image space (D-07). Nothing has been measured.
 - **Benefit for visually impaired users.** There has been no user study; all tests were done by the developer at a desk.
 - **General open-vocabulary accuracy.** Only watch, keys and slippers were measured, at one desk (C13). Don't claim the system finds "any object"; keys failed, and untested words (wallet, glasses, …) have unknown accuracy.
-- **Offline operation.** Speech recognition needs internet (Sarvam).
+- **Offline operation** (until EXP-09 passes). Since 2026-10-23 the code is offline by default (D-15, D-16), but a session with the network physically off hasn't been run yet. After it passes, cite C19.
+- **"First offline assistant".** On-device object detection already exists (e.g. Google Lookout describes on-device vision; several apps advertise offline detection). Claim only the measured combination: offline multilingual request + open-vocabulary target + guidance to arrival.
+- **Multilingual accuracy** for any language other than English, until EXP-08 has run. Replies in Hindi aren't verified either: the phrases are a draft and no Hindi voice is installed (D-17).
 
 ## Limitations to state in the paper
 1. The ASR benchmark has n = 10, one speaker, English only, quiet room, and no significance testing.

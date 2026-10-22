@@ -4,6 +4,30 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-23 — R9 started: fully offline, multilingual assistant (branch `feature/offline-multilingual`)
+- **Why:** new project direction (user, 2026-10-23). Offline, on-device operation is the USP compared with cloud assistants such as Gemini. The paper uses the laptop prototype; a phone/glasses product comes later without a rewrite now. The system must stay multilingual. Work happens on a branch so `main` stays demo-ready.
+- **What (code, commits `1d7bb32`, `154d4af`, `8bccb95`, `b1969dc`):**
+  - `OFFLINE_MODE` (default on): sets the Ultralytics / Hugging Face offline flags before the libraries load, and makes the open-vocabulary loader fail fast on missing files. `tools/offline_check.py` is the pre-flight (D-16).
+  - On-device speech recognition with faster-whisper (`speech/whisper_stt.py`, `transcriber_factory.py`, `asr_config.py`) replaces Sarvam as the default; Sarvam is opt-in (D-15, supersedes D-01). The voice pipeline is now loaded once per process.
+  - EXP-08 tooling: prompt sheet, recorder, multilingual benchmark measuring object accuracy.
+  - Spoken replies in the user's language through `guidance/phrases.py` and voice selection by language (D-17).
+  - A per-stage latency log for sessions (`navigation/session_log.py`, EXP-09).
+- **Bugs found (affect re-running EXP-02, not its frozen results):**
+  1. faster-whisper 1.2.1 + PyAV 19 in `.venv`: every Whisper transcription failed (`metadata_errors` `TypeError`). Audio is now read with soundfile.
+  2. CTranslate2 on Windows didn't find cuBLAS, so Whisper ran on CPU only. `torch/lib` is now registered.
+- **Results:**
+  - EXP-08 English smoke test (10 EXP-02 clips, GPU): tiny/base 10/10 objects, median 0.08–0.13 s; auto language-ID 9/10, 10/10 with the language given.
+  - EXP-10 (partial, CPU only): `best.pt` 22.6 ms at 640 px, YOLOE-26s 73.6 ms (29.2 ms at 320 px, with lower confidences); Whisper tiny/base 0.20/0.37 s.
+  - No multilingual result yet.
+- **Tests:** module1 96 → 121, module2 194 → 214, all pass.
+- **Pending (need the user):**
+  - Download Whisper `small`/`medium`/`large-v3`.
+  - Record the multilingual test set.
+  - Approve the Sarvam baseline calls.
+  - Native-speaker review of the Hindi phrases, and a Windows Hindi voice.
+  - EXP-09: run with the network off.
+- **Links:** `experiments/2026-10-23_multilingual_offline_asr/`, `experiments/2026-10-23_edge_feasibility/`, `decisions.md` D-15–D-17, `paper_notes/IMPLEMENTATION_ROADMAP.md` R9.
+
 ## 2026-10-23 — Prompt wording for watch and keys (EXP-07)
 - **Why:** in the live app the watch was found when worn, ~50 % on a table and almost never in the hand; keys were never found (EXP-06). Hypothesis tested: the prompt word is the cause.
 - **What:** `OpenVocabDetector.set_target(..., prompts=[...])` and `openvocab_trials.py --prompts` (compare several words, or word combinations, on the same recorded frames). 7 recordings × 6 prompt sets with text YOLOE-26s.

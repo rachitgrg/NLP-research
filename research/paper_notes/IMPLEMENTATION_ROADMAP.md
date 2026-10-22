@@ -83,7 +83,30 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
 
 - **Distance:** keep relative cues. Optionally estimate "about N metres" using a pinhole model (`distance ≈ focal_px × real_height / bbox_height_px`) with per-class typical sizes; this needs a one-time focal-length calibration. Metric depth needs a depth or stereo camera.
 - **Accessibility protocol:** scripted rooms, time-to-find, success rate, and user feedback on speech cadence; test with a phone or chest-mounted camera facing forward.
-- **Offline STT fallback:** wire the existing faster-whisper code for when Sarvam or the network is unavailable.
+- **Offline STT fallback:** ~~wire the existing faster-whisper code~~. Superseded by R9: offline is now the default, not a fallback.
+
+## R9 — Fully offline and multilingual (USP; started 2026-10-23, branch `feature/offline-multilingual`)
+
+- **Objective:** every session runs on the laptop without internet, in the user's language. The paper reports the laptop prototype; a phone/glasses product is future work (D-16).
+- **Done (2026-10-23):**
+  - Offline mode and pre-flight `tools/offline_check.py` (D-16).
+  - On-device Whisper as the default recogniser; Sarvam opt-in (D-15).
+  - EXP-08 tooling: `record_multilingual.py`, `multilingual_benchmark.py`, 20-request prompt sheet.
+  - Phrase table and voice-by-language replies (D-17).
+  - Per-stage session latency log.
+  - EXP-10 partial (CPU speed).
+- **Remaining, in order:**
+  1. **Approval:** download Whisper `small`, `medium`, `large-v3` (~0.5 / 1.5 / 3 GB) with `OFFLINE_MODE=false` once.
+  2. **User:** record the test set, e.g. `record_multilingual.py --language hi --speaker S01`. Hindi plus ≥ 3 more languages, ≥ 2 speakers each, quiet and noisy.
+  3. Run EXP-08 (Whisper sizes, ± language hint). Sarvam baseline with `--allow-cloud` after approval (paid). Decide D-15 final (model size, routing).
+  4. Optional, if Whisper is weak on Indic languages: IndicConformer-600M + IndicTrans2-200M behind the same interface (install approval; gated model).
+  5. Native-speaker review of the Hindi phrases. Install a Windows Hindi voice (approval). Add tables for further languages.
+  6. **EXP-09:** `offline_check.py`, then network off, then `assistant.py --scenario <name>`: 5 scenarios × ≥ 2 languages, laptop webcam and a forward-facing USB camera. Rows land in `tools/results/session_latency_<date>.csv`.
+  7. **EXP-10 completion:** large Whisper models on CPU; optional ONNX/INT8 export (`onnx`/`onnxruntime` install approval).
+- **Acceptance:**
+  - C19: a full session with the network off.
+  - EXP-08 table: object accuracy per language for each backend vs Sarvam.
+  - EXP-10 table.
 
 ## R8 — Documentation, demo, academic deliverables
 

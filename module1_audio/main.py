@@ -92,7 +92,8 @@ def main() -> None:
     print("Initialising pipeline...")
     try:
         pipeline = HearingPipeline()
-    except EnvironmentError as exc:
+    except (EnvironmentError, RuntimeError, ImportError, ValueError) as exc:
+        # e.g. Whisper model not cached offline, or Sarvam requested offline
         print(f"\n[ERROR] {exc}")
         sys.exit(1)
     print("Pipeline ready.\n")

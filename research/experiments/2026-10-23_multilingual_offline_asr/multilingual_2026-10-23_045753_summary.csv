@@ -1,0 +1,7 @@
+backend,language,n,object_accuracy,language_id_accuracy,errors,mean_latency_s,median_latency_s
+whisper:base,all,10,1.0,0.9,0,0.1304,0.129
+whisper:base,en,10,1.0,0.9,0,0.1304,0.129
+whisper:tiny,all,10,1.0,0.9,0,0.123,0.0958
+whisper:tiny,en,10,1.0,0.9,0,0.123,0.0958
+whisper:tiny+hint,all,10,1.0,1.0,0,0.0777,0.0775
+whisper:tiny+hint,en,10,1.0,1.0,0,0.0777,0.0775
