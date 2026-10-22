@@ -214,6 +214,12 @@ SEARCH_TIMEOUT_S: float = float(os.environ.get("SEARCH_TIMEOUT_S", "60"))
 # Stop the camera loop after this many consecutive failed frame reads.
 MAX_CONSECUTIVE_READ_FAILURES: int = int(os.environ.get("MAX_CONSECUTIVE_READ_FAILURES", "50"))
 
+# ── Reply language (roadmap R9, decisions.md D-17) ────────────
+# "auto": speak guidance in the user's spoken language when a phrase table
+# (guidance/phrases.py) AND an installed voice exist, else English.
+# A code ("en", "hi") forces that language (English if it has no voice).
+REPLY_LANGUAGE: str = os.environ.get("REPLY_LANGUAGE", "auto").strip().lower()
+
 # ── Milestone 5 — Audio TTS Feedback ──────────────────────────
 # TTS settings (TTS_*) moved to module1_audio/audio_feedback/tts_config.py
 # together with the speech engine; the env-var names are unchanged.

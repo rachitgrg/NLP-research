@@ -35,6 +35,7 @@ from config.config import (
     QUIT_KEY,
     TARGET_STATUS_COOLDOWN_S,
 )
+from guidance.phrases import phrase
 from detection.visualizer import (
     draw_detections,
     draw_navigation_overlay,
@@ -152,7 +153,9 @@ def run_camera_loop(
             if cancel_event.is_set():
                 print("\nENTER pressed — stopping detection loop.")
                 if nav_controller is not None:
-                    nav_controller.speaker.speak("Search cancelled.", force=True)
+                    nav_controller.speaker.speak(
+                        phrase("cancelled", getattr(nav_controller, "language", "en")), force=True
+                    )
                     nav_controller.speaker.wait_until_idle(timeout_s=3.0)
                 break
 

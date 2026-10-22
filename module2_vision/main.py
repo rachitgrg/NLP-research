@@ -21,7 +21,7 @@
 #       python main.py --voice --duration 8
 #
 #      --voice records a microphone utterance, sends it through
-#      Module 1's HearingPipeline (Sarvam AI + spaCy) to extract the
+#      Module 1's HearingPipeline (offline Whisper + spaCy) to extract the
 #      target object, then runs the M3 camera+matching pipeline.
 #
 # All parameters default to the values in config/config.py.
@@ -46,6 +46,7 @@ from config.config import (
     CONFIDENCE_THRESHOLD,
     INFERENCE_DEVICE,
     INFERENCE_IMG_SIZE,
+    REPLY_LANGUAGE,
     YOLO_MODEL_PATH,
     add_module1_to_path,
     environment_warning,
@@ -179,19 +180,19 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _get_target_via_voice(duration: int) -> str | None:
+def _get_target_via_voice(duration: int) -> tuple[str | None, str | None]:
     """
     Record microphone audio, run Module 1's HearingPipeline, and return
-    the extracted target object string.
+    (extracted target object, spoken language code).
 
-    Returns None if Module 1 is unavailable or extraction fails.
+    Returns (None, None) if Module 1 is unavailable or extraction fails.
     """
     # Late import — Module 1 may not be installed in the M3 venv.
     try:
         from pipeline.m3_pipeline import run_voice_pipeline
     except ImportError as exc:
         logger.error("Cannot import m3_pipeline: %s", exc)
-        return None
+        return None, None
 
     # Module 1's microphone recorder lives in module1_audio/audio/microphone.py.
     # module1_audio/ is already on sys.path (add_module1_to_path / m3_pipeline).
@@ -203,7 +204,7 @@ def _get_target_via_voice(duration: int) -> str | None:
             "Make sure Module 1 dependencies are installed and the module1_audio/ "
             "directory is present alongside module2_vision/."
         )
-        return None
+        return None, None
 
     audio_path = None
     try:
@@ -211,19 +212,19 @@ def _get_target_via_voice(duration: int) -> str | None:
         audio_path = record_audio(duration=duration)
     except RuntimeError as exc:
         print(f"\n[ERROR] Microphone: {exc}")
-        return None
+        return None, None
 
     try:
         target_info = run_voice_pipeline(audio_path)
     except RuntimeError as exc:
         print(f"\n[ERROR] Module 1 pipeline failed: {exc}")
-        return None
+        return None, None
     finally:
         if audio_path:
             delete_temp_audio(audio_path)
 
     if target_info is None:
-        return None
+        return None, None
 
     target = target_info.get("target", "")
     language = target_info.get("language", "en")
@@ -236,7 +237,7 @@ def _get_target_via_voice(duration: int) -> str | None:
     if attributes:
         print(f"  Attributes        : {attributes}  (preserved for M4+)")
 
-    return target if target else None
+    return (target if target else None), language
 
 
 def main() -> None:
@@ -263,6 +264,7 @@ def main() -> None:
 
     # ── Resolve target string ──────────────────────────────────
     raw_target: str | None = None
+    spoken_language: str | None = None
 
     if args.target:
         # Option A — text target supplied directly
@@ -273,7 +275,7 @@ def main() -> None:
         # Option B — voice input via Module 1
         print(f"  Mode       : VOICE INPUT  (duration: {args.duration}s)")
         print()
-        raw_target = _get_target_via_voice(args.duration)
+        raw_target, spoken_language = _get_target_via_voice(args.duration)
         if not raw_target:
             print(
                 "\n[WARNING] Could not extract a target from voice input.\n"
@@ -318,7 +320,8 @@ def main() -> None:
 
     if raw_target:
         if args.navigate:
-            from audio_feedback.tts_speaker import TTSSpeaker
+            from audio_feedback.tts_speaker import TTSSpeaker, voice_languages
+            from guidance.phrases import choose_reply_language
             from guidance.obstacle_detector import ObstacleDetector
             from guidance.spatial_locator import SpatialLocator
             from navigation.navigation_controller import NavigationController
@@ -330,16 +333,18 @@ def main() -> None:
             # normalize_target() is already imported at the top of this file.
             nav_target = normalize_target(raw_target)
 
-            speaker = TTSSpeaker(enabled=not args.no_tts)
+            # Replies in the spoken language when phrases + a voice exist (R9).
+            reply_language = choose_reply_language(spoken_language, voice_languages(), REPLY_LANGUAGE)
+            print(f"  Reply lang : {reply_language}")
+            speaker = TTSSpeaker(enabled=not args.no_tts, language=reply_language)
             nav_controller = NavigationController(
                 target_name=nav_target,
                 matcher=TargetMatcher(supported_classes=detector.class_names),
                 locator=SpatialLocator(),
-                obstacle_detector=(
-                    ObstacleDetector(enabled=False) if args.no_obstacles else ObstacleDetector()
-                ),
+                obstacle_detector=ObstacleDetector(enabled=not args.no_obstacles, language=reply_language),
                 speaker=speaker,
                 tracker=TargetTracker(),
+                language=reply_language,
             )
         else:
             target_matcher = TargetMatcher(supported_classes=detector.class_names)

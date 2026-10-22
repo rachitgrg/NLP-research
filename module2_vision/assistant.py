@@ -25,15 +25,18 @@ from config.config import add_module1_to_path
 # TTS (audio_feedback) and the voice recorder live in module1_audio/.
 add_module1_to_path()
 
-from audio_feedback.tts_speaker import SpeechPriority, TTSSpeaker  # noqa: E402
+from audio_feedback.tts_speaker import SpeechPriority, TTSSpeaker, voice_languages  # noqa: E402
 from config.config import (  # noqa: E402
     CAMERA_INDEX,
     CONFIDENCE_THRESHOLD,
     INFERENCE_DEVICE,
     INFERENCE_IMG_SIZE,
+    REPLY_LANGUAGE,
     YOLO_MODEL_PATH,
     environment_warning,
 )
+from guidance.phrases import choose_reply_language, phrase  # noqa: E402
+from speech.asr_config import ASR_LANGUAGE  # noqa: E402  (module1_audio)
 from detection.camera_detector import run_camera_loop
 from detection.yolo_detector import YOLODetector
 from guidance.obstacle_detector import ObstacleDetector
@@ -64,9 +67,9 @@ ASSISTANT_BANNER = """\
 """
 
 
-def _get_target_from_speech(duration: int, speaker: TTSSpeaker) -> str | None:
-    """Prompt user and extract target object using Module 1."""
-    speaker.speak("Please say what object you are looking for.", priority=SpeechPriority.EMERGENCY, force=True)
+def _get_target_from_speech(duration: int, speaker: TTSSpeaker) -> tuple[str | None, str | None]:
+    """Prompt user and extract (target object, spoken language) using Module 1."""
+    speaker.speak(phrase("ask_target", speaker.language), priority=SpeechPriority.EMERGENCY, force=True)
     time.sleep(1.8)
 
     try:
@@ -76,7 +79,7 @@ def _get_target_from_speech(duration: int, speaker: TTSSpeaker) -> str | None:
         msg = "Voice module not available. Please type the target object."
         speaker.speak(msg)
         print(f"\n[INFO] {msg} ({exc})")
-        return None
+        return None, None
 
     audio_path = None
     try:
@@ -84,22 +87,24 @@ def _get_target_from_speech(duration: int, speaker: TTSSpeaker) -> str | None:
         audio_path = record_audio(duration=duration)
     except Exception as exc:
         print(f"[ERROR] Microphone capture failed: {exc}")
-        return None
+        return None, None
 
     try:
         target_info = run_voice_pipeline(audio_path)
     except Exception as exc:
         print(f"[ERROR] Voice pipeline failed: {exc}")
-        return None
+        return None, None
     finally:
         if audio_path:
             delete_temp_audio(audio_path)
 
     if not target_info:
-        return None
+        return None, None
 
     target = target_info.get("target", "")
-    return target if target else None
+    language = target_info.get("language")
+    print(f"\n  Heard ({language}): {target_info.get('raw_text', '')!r}")
+    return (target if target else None), language
 
 
 def run_assistant(
@@ -118,14 +123,19 @@ def run_assistant(
     env_warning = environment_warning()
     if env_warning:
         print(f"{env_warning}\n")
-    speaker = TTSSpeaker(use_mock=use_mock_audio)
+    # Replies start in the configured speech language (ASR_LANGUAGE) and then
+    # follow the language actually heard (REPLY_LANGUAGE, guidance/phrases.py).
+    voices = voice_languages()
+    speaker = TTSSpeaker(use_mock=use_mock_audio,
+                         language=choose_reply_language(ASR_LANGUAGE, voices, REPLY_LANGUAGE))
 
     raw_target = target
+    spoken_language: str | None = None
 
     # If no target specified via CLI, get from voice or keyboard prompt
     if not raw_target:
         if listen_voice:
-            raw_target = _get_target_from_speech(duration, speaker)
+            raw_target, spoken_language = _get_target_from_speech(duration, speaker)
 
         if not raw_target:
             speaker.speak("Please type the target object in the terminal.")
@@ -142,6 +152,14 @@ def run_assistant(
         return
 
     normalized = normalize_target(raw_target)
+
+    reply_language = choose_reply_language(spoken_language, voices, REPLY_LANGUAGE)
+    if reply_language != speaker.language:
+        speaker.stop()
+        speaker = TTSSpeaker(use_mock=use_mock_audio, language=reply_language)
+    heard = (spoken_language or "en").split("-")[0]
+    print(f"\n  Reply language   : {reply_language}"
+          + ("" if reply_language == heard else f"  (no phrases/voice for {heard!r}; see REPLY_LANGUAGE)"))
 
     # Load YOLO detector first: whether a target is supported depends on
     # the loaded model's class vocabulary (15 classes for the fine-tuned
@@ -182,16 +200,18 @@ def run_assistant(
         return
 
     # Acknowledge target
-    speaker.speak(f"Looking for {normalized}. Please hold camera steady and scan slowly.")
+    speaker.speak(phrase("looking_for", reply_language, obj=normalized))
 
     # Instantiate navigation controller
     nav_controller = NavigationController(
         target_name=normalized,
         matcher=TargetMatcher(supported_classes=detector.class_names),
         locator=SpatialLocator(),
-        obstacle_detector=ObstacleDetector() if obstacles else ObstacleDetector(enabled=False),
+        obstacle_detector=(ObstacleDetector(language=reply_language) if obstacles
+                           else ObstacleDetector(enabled=False, language=reply_language)),
         speaker=speaker,
         tracker=TargetTracker(),
+        language=reply_language,
     )
 
     try:

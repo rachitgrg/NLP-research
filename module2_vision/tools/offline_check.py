@@ -5,7 +5,8 @@
 # Lists every model file the configured assistant needs and whether it
 # is on disk, so a session can run without internet:
 #   closed-set YOLO weights, open-vocabulary weights + text encoder,
-#   speech recogniser (Whisper in the Hugging Face cache), spaCy model.
+#   speech recogniser (Whisper in the Hugging Face cache), spaCy model,
+#   and (for information) the installed reply voices per language.
 # Nothing is downloaded.  Exit code 1 if anything required is missing.
 #
 # Usage (from module2_vision/):
@@ -100,8 +101,18 @@ def check_parser() -> list[Check]:
     return [Check("Request parser (spaCy en_core_web_sm)", ok, "installed" if ok else "missing")]
 
 
+def check_voices() -> list[Check]:
+    """Installed speech voices (informational): replies need a voice per language."""
+    from audio_feedback.tts_speaker import sapi_voices, voice_languages
+
+    voices = sapi_voices()
+    names = ", ".join(name.split(" - ")[0] for name, _ in voices) or "none listed"
+    return [Check(f"Reply voices (languages: {', '.join(sorted(voice_languages()))})",
+                  True, names, required=False)]
+
+
 def run_checks() -> list[Check]:
-    return check_vision() + check_speech() + check_parser()
+    return check_vision() + check_speech() + check_parser() + check_voices()
 
 
 def main() -> int:

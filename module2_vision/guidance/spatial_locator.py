@@ -24,6 +24,7 @@ from config.config import (
     ZONE_LEFT_THRESHOLD,
     ZONE_RIGHT_THRESHOLD,
 )
+from guidance.phrases import phrase
 
 
 class HorizontalZone(Enum):
@@ -195,26 +196,22 @@ class SpatialLocator:
         )
 
     @staticmethod
-    def format_guidance(location: SpatialLocation, target_name: str = "object") -> str:
+    def format_guidance(location: SpatialLocation, target_name: str = "object", language: str = "en") -> str:
         """
-        Produce a short spoken guidance string ("Bottle, left.").
+        Produce a short spoken guidance string ("Bottle, left.") in
+        ``language`` (guidance/phrases.py; English if unknown).
 
         Kept short on purpose: guidance repeats while the user moves, and
         each extra word delays the next update (~4.6 s for the old long
         form vs ~1-1.5 s for a short phrase, measured with Windows SAPI).
         """
-        name = target_name.strip().capitalize() if target_name else "Object"
-
         if location.is_reached:
-            return f"{name} is directly in front of you. Stop and reach out."
+            return phrase("target_reached", language, obj=target_name)
 
-        if location.zone == HorizontalZone.CENTER:
-            return f"{name}, straight ahead."
-        elif location.zone == HorizontalZone.FAR_LEFT:
-            return f"{name}, far left."
-        elif location.zone == HorizontalZone.LEFT:
-            return f"{name}, left."
-        elif location.zone == HorizontalZone.RIGHT:
-            return f"{name}, right."
-        else:  # FAR_RIGHT
-            return f"{name}, far right."
+        key = {
+            HorizontalZone.CENTER: "target_ahead",
+            HorizontalZone.FAR_LEFT: "target_far_left",
+            HorizontalZone.LEFT: "target_left",
+            HorizontalZone.RIGHT: "target_right",
+        }.get(location.zone, "target_far_right")
+        return phrase(key, language, obj=target_name)
