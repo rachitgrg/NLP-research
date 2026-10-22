@@ -23,6 +23,7 @@ import numpy as np
 
 from config.config import (
     INFERENCE_IMG_SIZE,
+    OFFLINE_MODE,
     OPEN_VOCAB_CONFIDENCE_THRESHOLD,
     OPEN_VOCAB_ENABLED,
     OPEN_VOCAB_MODEL_PATH,
@@ -71,8 +72,15 @@ class TargetSetup:
 
 
 def _default_open_vocab_factory(device: str) -> Any:
-    from detection.open_vocab_detector import OpenVocabDetector
+    from detection.open_vocab_detector import OpenVocabDetector, missing_files
 
+    # Offline (D-16): fail fast instead of letting Ultralytics try a download.
+    missing = missing_files(OPEN_VOCAB_MODEL_PATH) if OFFLINE_MODE else []
+    if missing:
+        raise FileNotFoundError(
+            "offline mode, model files missing: " + "; ".join(missing)
+            + " (run tools/offline_check.py)"
+        )
     return OpenVocabDetector(
         OPEN_VOCAB_MODEL_PATH, OPEN_VOCAB_CONFIDENCE_THRESHOLD, INFERENCE_IMG_SIZE, device
     )

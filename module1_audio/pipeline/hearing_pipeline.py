@@ -5,14 +5,15 @@
 #
 #   audio file
 #       ↓
-#   Sarvam AI Saaras v3  →  English text  (+ detected language)
+#   Speech recogniser    →  English text  (+ detected language)
+#   (offline Whisper by default; Sarvam opt-in — speech/transcriber_factory.py)
 #       ↓
 #   Query Parser          →  intent, object, attributes, keywords
 #       ↓
 #   Structured dict  (JSON-compatible)
 # ─────────────────────────────────────────────────────────────
 
-from speech.sarvam_stt import SarvamTranscriber
+from speech.transcriber_factory import create_transcriber
 from nlp.keyword_extractor import load_nlp_model
 from nlp.query_parser import parse_query
 
@@ -27,14 +28,16 @@ class HearingPipeline:
         print(result)
     """
 
-    def __init__(self, nlp_model_name: str = "en_core_web_sm"):
+    def __init__(self, nlp_model_name: str = "en_core_web_sm", transcriber=None):
         """
         Initialise and load all models (done once at startup).
 
         Args:
             nlp_model_name (str): spaCy model name.
+            transcriber: Object with transcribe(path) -> {"text", "language"};
+                         default: create_transcriber() (ASR_BACKEND).
         """
-        self.transcriber = SarvamTranscriber()
+        self.transcriber = transcriber if transcriber is not None else create_transcriber()
         self.nlp_model   = load_nlp_model(nlp_model_name)
 
     def run(self, audio_path: str) -> dict:
@@ -43,7 +46,7 @@ class HearingPipeline:
 
         The pipeline is:
             audio_path
-                → SarvamTranscriber  (Saaras v3, mode=translate)
+                → transcriber        (speech → English, e.g. Whisper translate)
                 → English text
                 → parse_query (spaCy NLP)
                 → structured result
@@ -54,14 +57,14 @@ class HearingPipeline:
         Returns:
             dict: {
                 "text"       (str):        English translation of the spoken audio.
-                "language"   (str):        Detected BCP-47 source language code.
+                "language"   (str):        Source language code ("hi", "hi-IN", …).
                 "intent"     (str):        The user intent.
                 "object"     (str|None):   The primary object noun.
                 "attributes" (dict):       Extracted attributes (color, size, etc).
                 "keywords"   (list[str]):  All extracted keywords.
             }
         """
-        # Step 1 — Transcribe & Translate to English via Sarvam AI
+        # Step 1 — Transcribe & translate to English
         transcript = self.transcriber.transcribe(audio_path)
 
         english_text      = transcript["text"]
@@ -74,7 +77,7 @@ class HearingPipeline:
         # parse_query receives plain English text — exactly as before
         parsed_result = parse_query(self.nlp_model, english_text)
 
-        # Overwrite the language field with the Sarvam-detected source language
+        # Overwrite the language field with the recogniser's source language
         parsed_result["language"] = detected_language
 
         return parsed_result

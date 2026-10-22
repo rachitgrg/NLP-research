@@ -27,6 +27,7 @@ import argparse
 import json
 import sys
 
+import speech.asr_config as asr_config  # sets the offline flags before model imports
 from audio.microphone import record_audio, delete_temp_audio
 from pipeline.hearing_pipeline import HearingPipeline
 
@@ -36,7 +37,7 @@ BANNER = """
 MODULE 1 - HEARING & UNDERSTANDING
 ========================================
   Multilingual Voice → English NLP
-  Powered by Sarvam AI Saaras v3
+  Offline by default (ASR_BACKEND)
 ========================================
 """
 
@@ -81,10 +82,13 @@ def main() -> None:
 
     print(BANNER)
     print(f"  Duration : {args.duration} second(s) per recording")
+    print(f"  ASR      : {asr_config.ASR_BACKEND}"
+          f"{' / ' + asr_config.ASR_MODEL_SIZE if asr_config.ASR_BACKEND == 'whisper' else ''}"
+          f", language {asr_config.ASR_LANGUAGE}, offline {asr_config.OFFLINE_MODE}")
     print()
 
-    # Initialise the pipeline — this validates the Sarvam API key early
-    # and loads the spaCy NLP model.
+    # Initialise the pipeline — this loads the speech model (or validates
+    # the Sarvam API key) and the spaCy NLP model.
     print("Initialising pipeline...")
     try:
         pipeline = HearingPipeline()

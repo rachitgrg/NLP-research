@@ -22,6 +22,30 @@ MODULE1_ROOT = PROJECT_ROOT / "module1_audio"
 # used by open-vocabulary detectors.
 WEIGHTS_DIR = MODULE_ROOT / "weights"
 
+# ── Offline mode (roadmap R9, decisions.md D-16) ──────────────
+# The whole assistant runs without internet: models come from disk only.
+# These library flags stop Ultralytics' online check, telemetry and
+# auto-update (YOLO_OFFLINE) and Hugging Face downloads (faster-whisper,
+# transformers).  They must be set before those libraries are imported, so
+# entry points import this module first.  Set OFFLINE_MODE=false to allow
+# downloads (e.g. to fetch a new model once).
+OFFLINE_MODE: bool = os.environ.get("OFFLINE_MODE", "true").lower() in ("true", "1", "yes")
+OFFLINE_ENV_FLAGS: dict[str, str] = {
+    "YOLO_OFFLINE": "1",
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+}
+
+
+def apply_offline_mode(enabled: bool = OFFLINE_MODE) -> None:
+    """Set OFFLINE_ENV_FLAGS (values already in the environment win)."""
+    if enabled:
+        for name, value in OFFLINE_ENV_FLAGS.items():
+            os.environ.setdefault(name, value)
+
+
+apply_offline_mode()
+
 
 def add_module1_to_path() -> None:
     """Make module1_audio/ importable (for audio_feedback).
