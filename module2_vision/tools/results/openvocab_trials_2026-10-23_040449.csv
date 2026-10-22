@@ -1,0 +1,7 @@
+timestamp,scene,target,model,prompts,frames,fps,person_frames_pct,raw_rate_at_base_pct,raw_rate_at_target_pct,old_found_pct,new_found_pct,old_lost_events,new_lost_events,old_longest_gap_s,new_longest_gap_s,median_conf,min_conf,raw_rate_at_0.10_pct,ms_per_frame,seconds,imgsz,device,base_threshold,target_threshold,confirm_window,confirm_min_hits,hold_s
+2026-10-23 04:04:24,watch worn,watch,yoloe-26s-seg.pt,watch,301,30.1,100.0,53.2,70.8,53.2,97.7,21,1,0.75,0.19,0.431,0.05,89.7,16.6,10.0,640,cuda,0.4,0.25,5,2,0.5
+2026-10-23 04:04:29,watch worn,watch,yoloe-26s-seg.pt,wristwatch,301,30.1,100.0,33.9,49.5,33.9,92.0,12,4,1.65,0.35,0.305,0.059,76.1,16.1,10.0,640,cuda,0.4,0.25,5,2,0.5
+2026-10-23 04:04:34,watch worn,watch,yoloe-26s-seg.pt,wrist watch,301,30.1,100.0,8.6,21.3,8.6,57.1,6,7,3.89,1.9,0.174,0.051,52.2,14.8,10.0,640,cuda,0.4,0.25,5,2,0.5
+2026-10-23 04:04:39,watch worn,watch,yoloe-26s-seg.pt,analog watch,301,30.1,100.0,8.0,27.6,8.0,68.1,10,5,3.74,1.25,0.182,0.051,66.1,15.0,10.0,640,cuda,0.4,0.25,5,2,0.5
+2026-10-23 04:04:44,watch worn,watch,yoloe-26s-seg.pt,watch+wristwatch,301,30.1,100.0,53.2,70.8,53.2,97.7,21,1,0.75,0.19,0.431,0.05,89.7,15.0,10.0,640,cuda,0.4,0.25,5,2,0.5
+2026-10-23 04:04:49,watch worn,watch,yoloe-26s-seg.pt,watch+wristwatch+wrist watch,301,30.1,100.0,53.2,70.8,53.2,97.7,21,1,0.75,0.19,0.431,0.05,89.7,15.2,10.0,640,cuda,0.4,0.25,5,2,0.5

@@ -15,14 +15,19 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 | C7 | The end-to-end system (voice → detection → spoken direction → arrival stop) works on a laptop in real time | ✅ functional, desk only | [M] hardware test |
 | C8 | RefCOCO: 133,784 unique expressions for 50,000 objects in 19,994 images; person = 50.17 % of expressions | ✅ (use 133,784, not 267,568) | [V] `dataset/README.md` |
 | C9 | COCO train2014: 604,906 valid boxes; person = 30.6 % | ✅ | [R] notebook outputs |
-| C10 | Model inference ≈ 8.8 ms/frame on an RTX 3050 | ❌ no saved log | `PROJECT_AUDIT.md` §7 — re-measure with a script |
+| C10 | Closed-set model inference ≈ 8–9 ms/frame (model only, 640 px) on an RTX 3050 | ✅ re-measured 2026-10-23: 8.07 / 8.89 ms median over 2 × 100 runs, one image; excludes camera capture and drawing | [V] `experiments/2026-10-23_open_vocab_comparison/` (the original 8.8 ms of 2026-10-20 had no saved log) |
 | C11 | Stock model recalls bottles better than fine-tuned on COCO photos with a person (47 % vs 40 %) | ❌ no saved artifact | `results/MANIFEST.md` |
+| C12 | Open-vocabulary detectors run in real time on the RTX 3050: YOLO-World v2 s ≈ 12 ms, YOLOE-26 s ≈ 17–22 ms, YOLOE-26 n prompt-free ≈ 31–33 ms per frame (model only) | ✅ speed only, 2 runs, one image | [V] `experiments/2026-10-23_open_vocab_comparison/` |
+| C13 | With the open-vocabulary fallback, the system detects objects outside its 15 classes: a worn watch in 99.7 % and slippers on the floor in 99.7 % of frames, with no false sightings in two absent scenes | ✅ indicative: 1 tester, 1 desk, one 10 s recording per scene; keys **not** found (0 %), a watch lying flat not found at 0.25 | [M]+[V] `experiments/2026-10-23_open_vocab_comparison/` Part B |
+| C14 | Text-prompt YOLOE-26s beats prompt-free YOLOE-26s and YOLO-World v2 for a worn watch on identical frames (99.7 % vs 76.4 % vs 18.3 %) | ✅ one scene, one recording | [M]+[V] same |
+| C15 | Prompt wording matters for open-vocabulary detection: keys on a table were found in 99.7 % of frames with "bunch of keys" vs 0 % with "key"/"keys"/"keychain"/"car key" on the same frames; for a watch, "watch" beat all alternatives | ✅ one recording per scene | [M]+[V] `experiments/2026-10-23_prompt_wording/` |
+| C16 | Objects held in the hand (watch, keys) are not detected with any tested prompt | ✅ as a negative result, one recording each | [M]+[V] same |
 
 ## Must NOT be claimed (current state)
 - **Audio-visual grounding / referring-expression comprehension.** The system detects fixed classes; attributes such as color and position are parsed but ignored (`decisions.md` D-08).
 - **Distance or navigation accuracy.** "Reached" is a box-area heuristic (≥ 22 % of the frame), and left/right is in image space (D-07). Nothing has been measured.
 - **Benefit for visually impaired users.** There has been no user study; all tests were done by the developer at a desk.
-- **Open-vocabulary detection.** Objects outside the 15 classes (watch, keys, slippers…) are rejected.
+- **General open-vocabulary accuracy.** Only watch, keys and slippers were measured, at one desk (C13). Don't claim the system finds "any object"; keys failed, and untested words (wallet, glasses, …) have unknown accuracy.
 - **Offline operation.** Speech recognition needs internet (Sarvam).
 
 ## Limitations to state in the paper
@@ -34,3 +39,4 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 6. Speech output is synchronous: an emergency message cannot interrupt an utterance already in progress (~1.7 s).
 7. Fine-tuning dropped 65 COCO classes, some of them relevant (remote, clock, keyboard, handbag).
 8. RefCOCO statistics in Stage-1 drafts double-count expressions (corrected 2026-10-21).
+9. Open-vocabulary fallback: objects held in the hand were not detected with any prompt; keys needed the prompt "bunch of keys" (EXP-07); a watch lying flat is seen only at low confidence (~0.12); evidence comes from one desk with one object of each kind (EXP-06, EXP-07).

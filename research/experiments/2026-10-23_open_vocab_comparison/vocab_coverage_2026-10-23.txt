@@ -1,0 +1,32 @@
+vocabulary size: yoloe-26n-seg-pf.pt = 4584, yoloe-26s-seg-pf.pt = 4584
+word             26n-pf  26s-pf 
+watch            yes     yes    
+wristwatch       no      no     
+key              yes     yes    
+keys             yes     yes    
+slipper          yes     yes    
+slippers         yes     yes    
+sandal           yes     yes    
+flip flop        yes     yes    
+shoe             yes     yes    
+glasses          yes     yes    
+eyeglasses       no      no     
+spectacles       no      no     
+sunglasses       yes     yes    
+wallet           no      no     
+purse            no      no     
+remote control   no      no     
+earphone         yes     yes    
+headphones       no      no     
+charger          yes     yes    
+pen              yes     yes    
+medicine         yes     yes    
+pill             no      no     
+bottle           yes     yes    
+water bottle     no      no     
+cell phone       no      no     
+mobile phone     no      no     
+comb             yes     yes    
+towel            yes     yes    
+cup              yes     yes    
+mug              yes     yes    

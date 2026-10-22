@@ -38,6 +38,15 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
   2. Add `OpenVocabDetector` with the same `detect(frame)` output format (`module2_vision/detection/`).
   3. Detector selection in `main.py` / `assistant.py`, with the model loaded once.
   4. Build a small self-recorded test set (e.g. 20 photos each of watch / keys / slippers / glasses) and measure precision/recall and FPS.
+- **Progress (2026-10-23, EXP-06):**
+  - ✅ Task 1: weights downloaded and verified (`module2_vision/weights/`). The `clip` package was installed.
+  - ✅ Task 2: `module2_vision/detection/open_vocab_detector.py` (prompt-free YOLOE, text-prompt YOLOE, YOLO-World).
+  - ✅ Speed: every candidate ≥ 30 FPS model-only (YOLO-World 12 ms, YOLOE-26s 17–22 ms, YOLOE-26n-pf 31–33 ms).
+  - ✅ Task 4: desk accuracy (EXP-06 Part B): worn watch 99.7 %, slippers 99.7 %, keys 0 %, absent scenes 0 % false sightings.
+  - ✅ Task 3: YOLOE-26s text prompt chosen (D-13); `detection/detector_factory.py` used by `main.py` and `assistant.py`; aliases added.
+  - ⏳ Live app check by the user (`main.py --target watch --navigate`).
+  - ✅ Prompt wording (EXP-07): "watch" is already the best watch prompt; "bunch of keys" finds keys on a table (99.7 % vs 0 %). Prompt map active (D-14, `OPEN_VOCAB_PROMPTS`).
+  - **Open:** objects held in the hand (0 % for watch and keys with every prompt); a 0.10 open-vocabulary threshold for objects lying flat, after more absent/cluttered scenes (with a person in view) for false positives.
 - **Acceptance:** "watch" yields guidance on the test set with stated accuracy; ≥ 10 FPS on GPU.
 - **Risks:** small objects (keys) are hard at 640 px. Mitigate by suggesting the user move closer and using a lower threshold plus N-of-M confirmation (R5).
 - **Alternatives:** Grounding DINO / OWLv2 (more accurate on phrases, but a few FPS and a heavy `transformers` dependency).

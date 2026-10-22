@@ -3,8 +3,8 @@
 A research project building an assistive object finder for blind and low-vision users: the user says what they are looking for, the camera finds it, and spoken directions guide them to it.
 
 > [!NOTE]
-> **Implemented:** multilingual voice request → English text → rule-based parser → real-time 15-class YOLOv8n detection → 5-zone spoken direction guidance with obstacle warnings and arrival detection.
-> **Not yet implemented:** free-text visual grounding (e.g. "the red bottle on the left"), detection of objects outside the model's class list (watch, keys), and metric distance estimation.
+> **Implemented:** multilingual voice request → English text → rule-based parser → real-time 15-class YOLOv8n detection, with an open-vocabulary fallback (YOLOE) for other objects such as a watch or slippers → 5-zone spoken direction guidance with obstacle warnings and arrival detection.
+> **Not yet implemented:** free-text visual grounding (e.g. "the red bottle on the left"), reliable detection of objects held in the hand (not found in desk tests), and metric distance estimation.
 > Verified status: [research/PROJECT_AUDIT.md](research/PROJECT_AUDIT.md). Next steps: [research/paper_notes/IMPLEMENTATION_ROADMAP.md](research/paper_notes/IMPLEMENTATION_ROADMAP.md).
 
 ---

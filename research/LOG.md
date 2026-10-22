@@ -4,6 +4,31 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-23 — Prompt wording for watch and keys (EXP-07)
+- **Why:** in the live app the watch was found when worn, ~50 % on a table and almost never in the hand; keys were never found (EXP-06). Hypothesis tested: the prompt word is the cause.
+- **What:** `OpenVocabDetector.set_target(..., prompts=[...])` and `openvocab_trials.py --prompts` (compare several words, or word combinations, on the same recorded frames). 7 recordings × 6 prompt sets with text YOLOE-26s.
+- **Results:** watch: `watch` is best (worn 97.7 %); `wristwatch`, `wrist watch`, `analog watch` are worse; combinations equal `watch`; in hand 0 % with every prompt, so wording is **not** the cause. Keys: `bunch of keys` 99.7 % on a table vs 0 % for `key`, `keys`, `keychain`, `car key`; in hand 0 % with every prompt. No false sightings in the absent scenes (the "no keys" scene had no person in view).
+- **Bug fixed:** `detection_trials.py` and `openvocab_trials.py` opened a new timestamped CSV for every run once the columns changed, instead of reusing today's file with matching columns. Data unaffected; 2 regression tests added (190 vision tests pass).
+- **Decided (user-approved):** `decisions.md` D-14, the model gets `bunch of keys` when the user asks for keys (config `OPEN_VOCAB_PROMPTS`). 194 vision tests pass; live check with real keys: works (user report, informal).
+- **Links:** `experiments/2026-10-23_prompt_wording/`.
+
+## 2026-10-23 — R3: desk accuracy (EXP-06 Part B); YOLOE-26s text prompt chosen and integrated
+- **What:** 8 desk recordings (watch on desk, watch on wrist, no watch, keys on desk, keys in hand, no keys, slippers on floor; one watch-on-desk recording redone and excluded), all three open-vocabulary models run on the same frames.
+- **Results ("found", 0.25 + smoothing):** worn watch: text YOLOE-26s 99.7 %, prompt-free 76.4 %, YOLO-World 18.3 %; slippers: 99.7 % for all; keys: 0 % for all, even at 0.10; watch lying flat: 0 % (text YOLOE sees it at ~0.12 confidence in 73.4 % of frames); absent scenes: 0 % for all.
+- **Decision:** D-13 decided — YOLOE-26s text prompt as the open-vocabulary fallback, threshold kept at 0.25.
+- **Integration:** `module2_vision/detection/detector_factory.py` (`prepare_target_detector`, `HybridDetector`): the closed-set model keeps its 15 classes and keeps providing obstacles; other targets add the open-vocabulary model. `main.py` and `assistant.py` use it. New aliases: wristwatch → watch, eyeglasses/spectacles/specs → glasses. Config `OPEN_VOCAB_ENABLED`, `OPEN_VOCAB_MODEL_PATH`, `OPEN_VOCAB_CONFIDENCE_THRESHOLD`.
+- **Verification:** 184 vision tests pass (7 new); real-model check: hybrid detection 32 ms per frame on the RTX 3050. Live hardware run with the app still to do.
+- **Links:** `experiments/2026-10-23_open_vocab_comparison/`, `decisions.md` D-13, `paper_notes/claims_and_limitations.md` C13.
+
+## 2026-10-23 — R3 started: open-vocabulary detectors benchmarked (EXP-06 Part A)
+- **What:** compared three open-vocabulary detector families for objects outside the 15 classes: YOLOE-26 prompt-free (n, s), YOLOE-26 text-prompt (s, MobileCLIP2-B encoder) and YOLO-World v2 (s, CLIP ViT-B/32). Added `module2_vision/detection/open_vocab_detector.py` (same output format as `YOLODetector`), `tools/openvocab_benchmark.py` and `tools/openvocab_trials.py` (records one scene in memory and runs every model on the same frames).
+- **Results (model-only, RTX 3050, 640 px):** YOLO-World v2 11.5–11.9 ms, YOLOE-26s text 16.9–20.1 ms, YOLOE-26s prompt-free 19.0–21.8 ms, YOLOE-26n prompt-free 30.9–32.7 ms (slower than s in both runs; cause not verified). Closed-set `best.pt` re-measured at 8.1–8.9 ms, which gives claim C10 its missing evidence.
+- **Vocabulary:** the prompt-free models (4,584 names) include watch, key, slipper, glasses, earphone, charger, pen, medicine; not wallet, purse, remote control, headphones, eyeglasses, wristwatch.
+- **Environment change:** installed the `clip` package (ultralytics/CLIP @ `7ffa84b`, plus ftfy, regex, wcwidth) into `.venv` and pinned it in `requirements.txt`. Weights and text encoders (~730 MB) are in `module2_vision/weights/` (gitignored). Two browser-downloaded files were corrupted despite correct sizes (CRC check); they were re-downloaded and verified, and the corrupted copies were kept as `*.corrupt` for the user to delete.
+- **Pending:** Part B desk accuracy on watch / keys / slippers, then the model choice (D-13) and integration into `main.py` / `assistant.py`.
+- **Tests:** 177 vision tests pass (13 new).
+- **Links:** `experiments/2026-10-23_open_vocab_comparison/`, `decisions.md` D-13, `paper_notes/claims_and_limitations.md` C10, C12.
+
 ## 2026-10-22 — Result scripts no longer overwrite earlier results
 - **What:** `module1_audio/evaluation/evaluate_models.py` writes each run to `evaluation/runs/results_<date_time>.csv` (opened in create-only mode); `results.csv` stays the 2026-09-16 run of record. `plot_results.py` and `semantic_eval.py` take `--results` (default unchanged). `module2_vision/tools/detection_trials.py` appends to `tools/results/detection_trials_<date>.csv` and records the settings with each row (thresholds, smoothing window/hits/hold, image size, device, duration); `detection_trials.csv` (2026-10-20) is frozen.
 - **Why:** re-running either tool used to overwrite or mix in with the results cited in the paper drafts. Each row now records its config, as the reproducibility rule requires.

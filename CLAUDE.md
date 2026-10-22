@@ -22,12 +22,13 @@ Research record (source of truth for the paper): `research/` (start at `research
 - Assistant: `cd module2_vision; ..\.venv\Scripts\python main.py --target bottle --navigate` (desk test: add `--no-obstacles`) or `..\.venv\Scripts\python assistant.py`
 - ASR benchmark: `cd module1_audio; ..\.venv\Scripts\python evaluation\evaluate_models.py` (calls the paid Sarvam API; ask first). Writes `evaluation/runs/results_<date_time>.csv`; `evaluation/results.csv` is the 2026-09-16 run of record and is never written. Plot or score a run with `plot_results.py --results <csv>` / `semantic_eval.py --results <csv>`.
 - Detection trials: `cd module2_vision; ..\.venv\Scripts\python tools\detection_trials.py --scene "<name>"` (appends to `tools/results/detection_trials_<date>.csv` with the settings used; `detection_trials.csv` is the frozen 2026-10-20 record)
+- Open-vocabulary (R3): benchmark `tools\openvocab_benchmark.py`; desk trials `tools\openvocab_trials.py --target watch --scene "<name>"` (all models on the same recorded frames; nothing saved to disk; `--prompts a b a+b` compares prompt words, EXP-07). Weights and text encoders live in `module2_vision/weights/`; `OpenVocabDetector` downloads text encoders there, not to Ultralytics' global folder.
 - Training: `cd module2_vision\training; python train.py` (ask first; overwrites `runs/train/`)
 - Paper tables/figures: `.\.venv\Scripts\python research\results\scripts\generate_tables.py --out <scratch>` (without `--out` it overwrites committed outputs; ask first)
 
 ## Tests
 - `cd module1_audio; ..\.venv\Scripts\python -m pytest tests -q` (96 tests on 2026-10-21)
-- `cd module2_vision; ..\.venv\Scripts\python -m pytest tests -q` (164 tests on 2026-10-22)
+- `cd module2_vision; ..\.venv\Scripts\python -m pytest tests -q` (194 tests on 2026-10-23)
 - Tests mock the camera, YOLO, and TTS. Hardware behaviour needs a manual run.
 
 ## Conventions
@@ -35,7 +36,7 @@ Research record (source of truth for the paper): `research/` (start at `research
 - Both modules have a `pipeline` package. `module2_vision` loads Module 1's `hearing_pipeline.py` by file path (`pipeline/m3_pipeline.py`); never `import pipeline.hearing_pipeline` from `module2_vision`.
 - `module2_vision` imports TTS (`audio_feedback`) from `module1_audio` via `config.add_module1_to_path()`, which **appends** to `sys.path` so the vision packages keep priority. Call it before importing `audio_feedback`.
 - Detection dict contract: `{"class_name","class_id","confidence","bbox":[x1,y1,x2,y2]}`. Don't change it without updating all consumers.
-- Supported targets come from the loaded model (`detector.class_names`), not from the COCO-80 list.
+- Supported targets come from the loaded model (`detector.class_names`), not from the COCO-80 list. Choose the detector for a target with `detection/detector_factory.prepare_target_detector()` (closed-set for its classes; otherwise the open-vocabulary model alongside it, D-13). Don't build detectors for a target by hand in entry points.
 - Vision tunables live in `module2_vision/config/config.py`, TTS tunables in `module1_audio/audio_feedback/tts_config.py`. All can be overridden with env vars.
 - Paths: derive them from `__file__` (never hard-code `D:\...`); data paths go through `DATA_DIR`.
 - Naming: experiment folders `research/experiments/YYYY-MM-DD_<short_name>/`; dated snapshots `<name>_YYYY-MM-DD.<ext>`; decisions `D-NN`; experiments `EXP-NN`.

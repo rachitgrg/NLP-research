@@ -16,6 +16,8 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-10 | Speech output via Windows SAPI (comtypes), pyttsx3 elsewhere | 2026-10-20 | Active |
 | D-11 | Supported targets = classes of the loaded model | 2026-10-20 | Active |
 | D-12 | One environment (root `.venv`) and one repository layout | 2026-10-21 | Active |
+| D-13 | Open-vocabulary fallback: YOLOE-26s text prompt, alongside the closed-set model | 2026-10-23 | Active |
+| D-14 | Prompt map: "keys"/"key" → model prompt `bunch of keys` | 2026-10-23 | Active (approved by the user 2026-10-23) |
 
 ---
 
@@ -74,3 +76,19 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 - **Decision (2026-10-21):** layout `module1_audio/` (all sound: ASR, parser, TTS), `module2_vision/` (detection, guidance, training, notebooks), `research/` (paper source of truth), and a gitignored `data/` at the root with a `DATA_DIR` override.
   - Data sits at the root because both modules and the notebooks use it, raw data stays separate from processed data, and nothing large can be committed by accident.
 - **Interface kept:** detection dict `{"class_name", "class_id", "confidence", "bbox": [x1, y1, x2, y2]}` (pixels).
+
+### D-13 · Open-vocabulary fallback
+- **Decision (2026-10-23, after EXP-06 Part B):** targets outside the closed-set classes are searched with **YOLOE-26s with text prompts** (`yoloe-26s-seg.pt` + MobileCLIP2-B), run together with the closed-set model (`HybridDetector`), which keeps providing people and furniture for obstacle warnings. Confidence threshold 0.25 (as for closed-set targets). Configurable: `OPEN_VOCAB_ENABLED`, `OPEN_VOCAB_MODEL_PATH`, `OPEN_VOCAB_CONFIDENCE_THRESHOLD`.
+- **Why:** on the same recorded frames it found a worn watch in 99.7 % of frames vs 76.4 % (prompt-free YOLOE) and 18.3 % (YOLO-World), tied on slippers (99.7 %), with no false sightings in two absent scenes. It accepts any word, while the prompt-free vocabulary lacks e.g. wallet and remote control. Speed ≈ 15–20 ms alone, ≈ 32 ms together with the closed-set model.
+- **Not changed:** threshold 0.10 would catch a watch lying flat (73.4 % of frames) but false-positive evidence is only two scenes; revisit with more absent/cluttered scenes. Keys are not found by any tested model.
+
+#### History (before Part B)
+- **Decided so far (2026-10-23):** keep the closed-set `best.pt` for its 15 classes (fastest: 8–9 ms; D-05). Targets it cannot detect go to an open-vocabulary model run through the installed Ultralytics package, behind the same `detect(frame)` interface (`module2_vision/detection/open_vocab_detector.py`).
+- **Candidates and Part A evidence** (`experiments/2026-10-23_open_vocab_comparison/`): all run at ≥ 30 FPS model-only on the RTX 3050. Prompt-free YOLOE needs no text encoder but only knows its 4,584 names (watch, key, slipper yes; wallet, remote control no). Text-prompt YOLOE and YOLO-World accept any word but need a text encoder (254 MB / 354 MB) and the `clip` package.
+- **Still to decide:** which model, from desk accuracy on watch / keys / slippers (EXP-06 Part B). Speed alone does not decide it.
+- **Why not Grounding DINO / OWLv2:** heavier `transformers` dependency and a few FPS on 6 GB (roadmap R3 alternatives); not tested.
+
+### D-14 · Prompt map for the open-vocabulary model
+- **Decision (2026-10-23, approved by the user):** when the user asks for "keys" or "key", the open-vocabulary model gets the prompt `bunch of keys`; speech still uses the user's word ("Keys, left."). Other targets keep their own word as the prompt ("watch" is already the best watch prompt). Implemented as `OPEN_VOCAB_PROMPTS` in `module2_vision/config/config.py` (env format `target=prompt1|prompt2;…`), applied in `detection/detector_factory.py`; mapped words the model can't search for fall back to the target word.
+- **Evidence:** `experiments/2026-10-23_prompt_wording/` (EXP-07): keys on a table 99.7 % found with `bunch of keys` vs 0 % with `key`, `keys`, `keychain`, `car key`; 0 % false sightings in a "no keys" scene.
+- **Open risks:** one recording per scene; keys held in the hand still 0 %; false positives with a person in view untested for this prompt.

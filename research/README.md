@@ -34,6 +34,8 @@ Everything the paper needs lives here: what was done (`LOG.md`), why (`decisions
 | `experiments/2026-10-20_yolov8n_15class_finetune/` | EXP-03 training config, `results.csv`, curves, confusion matrices, val examples |
 | `experiments/2026-10-20_manual_hardware_test/` | EXP-04 14-item functional test |
 | `experiments/2026-10-20_desk_detection_trials/` | EXP-05 threshold/smoothing trials, fine-tuned vs stock |
+| `experiments/2026-10-23_open_vocab_comparison/` | EXP-06 open-vocabulary detectors (R3): speed, vocabulary, desk accuracy (watch / keys / slippers); YOLOE-26s text prompt chosen |
+| `experiments/2026-10-23_prompt_wording/` | EXP-07 prompt words for watch and keys: "watch" best; "bunch of keys" finds keys on a table (0 → 99.7 %); held in hand fails for both |
 | `results/MANIFEST.md` | figure/table → script, inputs, caveats |
 | `results/tables/` | tables 01–08 (Markdown) |
 | `results/scripts/` | `generate_figures.py`, `generate_tables.py` (`--out` for check runs) |
