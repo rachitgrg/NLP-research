@@ -18,4 +18,4 @@ Engineering milestones are in `IMPLEMENTATION_ROADMAP.md` (R1–R8). This list c
 
 ## Housekeeping
 - [ ] Review `_to_delete/` (repo root) and delete or restore.
-- [ ] Make `evaluate_models.py` and `detection_trials.py` write dated result files instead of overwriting or appending to one file.
+- [x] Make `evaluate_models.py` and `detection_trials.py` write dated result files instead of overwriting or appending to one file (2026-10-22).

@@ -121,7 +121,21 @@ def plot_results(csv_path: str, output_path: str):
     print(f"4-panel graph saved to: {out}")
 
 if __name__ == "__main__":
+    import argparse
+
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(base_dir, "results.csv")
-    out_path = os.path.join(base_dir, "comparison_graph_v2.png")
-    plot_results(csv_path, out_path)
+    default_csv = os.path.join(base_dir, "results.csv")
+    parser = argparse.ArgumentParser(description="Plot the 4-panel ASR comparison chart.")
+    parser.add_argument("--results", default=default_csv,
+                        help="results CSV (default: results.csv, the 2026-09-16 run of record)")
+    parser.add_argument("--out", help="output PNG (default: comparison_graph_v2.png for "
+                                      "results.csv, otherwise <results>.png next to the CSV)")
+    args = parser.parse_args()
+
+    if args.out:
+        out_path = args.out
+    elif os.path.abspath(args.results) == default_csv:
+        out_path = os.path.join(base_dir, "comparison_graph_v2.png")
+    else:
+        out_path = os.path.splitext(args.results)[0] + ".png"
+    plot_results(args.results, out_path)

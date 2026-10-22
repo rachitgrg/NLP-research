@@ -58,7 +58,11 @@ def get_audio_duration(audio_path: str) -> float:
 def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
     references_path = os.path.join(base_dir, "references.csv")
-    results_path = os.path.join(base_dir, "results.csv")
+    # Every run gets its own dated file. results.csv (the 2026-09-16 run of
+    # record, see research/experiments/) is never overwritten.
+    results_path = os.path.join(
+        base_dir, "runs", f"results_{time.strftime('%Y-%m-%d_%H%M%S')}.csv"
+    )
     audio_dir = os.path.join(base_dir, "audio")
 
     # Read references
@@ -145,7 +149,7 @@ def main():
         results.append(row)
         print("-" * 40)
         
-    # Write results.csv
+    # Write this run's results file
     fieldnames = ["sample_id", "reference", "audio_duration_seconds"]
     for m in models:
         fieldnames.extend([
@@ -156,7 +160,8 @@ def main():
             f"{m.name}_latency_seconds"
         ])
         
-    with open(results_path, "w", encoding="utf-8", newline="") as f:
+    os.makedirs(os.path.dirname(results_path), exist_ok=True)
+    with open(results_path, "x", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(results)
@@ -180,6 +185,8 @@ def main():
         print(f"Median Latency:     {median_latency:.4f}s\n")
         
     print(f"Results saved to: {results_path}")
+    print(f"Plot:     python evaluation/plot_results.py --results {results_path}")
+    print(f"Semantic: python evaluation/semantic_eval.py --results {results_path}")
 
 if __name__ == "__main__":
     main()

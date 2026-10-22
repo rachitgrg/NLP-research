@@ -4,6 +4,12 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-22 — Result scripts no longer overwrite earlier results
+- **What:** `module1_audio/evaluation/evaluate_models.py` writes each run to `evaluation/runs/results_<date_time>.csv` (opened in create-only mode); `results.csv` stays the 2026-09-16 run of record. `plot_results.py` and `semantic_eval.py` take `--results` (default unchanged). `module2_vision/tools/detection_trials.py` appends to `tools/results/detection_trials_<date>.csv` and records the settings with each row (thresholds, smoothing window/hits/hold, image size, device, duration); `detection_trials.csv` (2026-10-20) is frozen.
+- **Why:** re-running either tool used to overwrite or mix in with the results cited in the paper drafts. Each row now records its config, as the reproducibility rule requires.
+- **Effect on results:** none. The default `semantic_eval.py` output is identical to the saved 2026-10-21 re-run, and `plot_results.py` reproduces `comparison_graph_v2.png`.
+- **Verification:** 4 new tests (`module2_vision/tests/test_detection_trials_output.py`); 96 + 164 tests pass.
+
 ## 2026-10-21 — Correction: RefCOCO expressions double-counted
 - **What:** `refcoco_processed.csv` stacks the UNC and Google split files of RefCOCO, which contain the same 50,000 objects and expressions. Every expression appears twice: 133,784 unique, not 267,568. Absolute counts in the Stage-1 tables and figures (expressions, tokens, term frequencies) are doubled; percentages and averages are unaffected.
 - **Why it matters:** these numbers appear in the paper drafts. A future grounding split must use one scheme only.

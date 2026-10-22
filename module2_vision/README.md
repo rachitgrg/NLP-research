@@ -112,7 +112,8 @@ module2_vision/
 │
 ├── tools/
 │   ├── detection_trials.py    # Controlled webcam detection trials (measurement tool)
-│   └── results/               # detection_trials.csv (appended per run)
+│   └── results/               # detection_trials_<date>.csv (one row per run + settings);
+│                              # detection_trials.csv = frozen 2026-10-20 runs
 │
 ├── training/                  # YOLOv8n fine-tuning (see training/README.md)
 │   ├── train.py, test_model.py, dataset.yaml, results_summary.txt

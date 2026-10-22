@@ -11,8 +11,9 @@
 #   NEW : target accepted from TARGET_CONFIDENCE_THRESHOLD (0.25)
 #         + TargetTracker smoothing (2-of-5 confirm, 0.5 s hold)
 #
-# No images are saved. One summary row per run is appended to
-# tools/results/detection_trials.csv.
+# No images are saved. One summary row per run (metrics + the settings
+# used) is appended to tools/results/detection_trials_<YYYY-MM-DD>.csv.
+# detection_trials.csv holds the 2026-10-20 runs and is never written.
 #
 # Usage (from module2_vision/):
 #   python tools/detection_trials.py --scene "bottle alone"
@@ -36,10 +37,13 @@ if str(MODULE_ROOT) not in sys.path:
 from config.config import (  # noqa: E402
     CONFIDENCE_THRESHOLD,
     TARGET_CONFIDENCE_THRESHOLD,
+    TARGET_CONFIRM_MIN_HITS,
+    TARGET_CONFIRM_WINDOW,
+    TARGET_HOLD_S,
 )
 from matching.temporal_filter import TargetTracker  # noqa: E402
 
-RESULTS_CSV = MODULE_ROOT / "tools" / "results" / "detection_trials.csv"
+RESULTS_DIR = MODULE_ROOT / "tools" / "results"
 RECORD_CONF = 0.05  # low threshold used while recording; filtering happens in analysis
 
 
@@ -166,17 +170,36 @@ def record(args: argparse.Namespace) -> list[Sample]:
     return samples
 
 
-def save_row(args: argparse.Namespace, metrics: dict[str, float]) -> Path:
-    RESULTS_CSV.parent.mkdir(parents=True, exist_ok=True)
+def results_file(fieldnames: list[str], results_dir: Path = RESULTS_DIR) -> Path:
+    """Today's results file; a timestamped one if today's has other columns."""
+    path = results_dir / f"detection_trials_{time.strftime('%Y-%m-%d')}.csv"
+    if path.exists():
+        with path.open(newline="", encoding="utf-8") as fh:
+            if next(csv.reader(fh), None) != fieldnames:
+                path = path.with_name(f"{path.stem}_{time.strftime('%H%M%S')}.csv")
+    return path
+
+
+def save_row(
+    args: argparse.Namespace, metrics: dict[str, float], results_dir: Path = RESULTS_DIR
+) -> Path:
+    """Append one run (metrics + the settings that produced them) to a dated CSV."""
     row = {"timestamp": time.strftime("%Y-%m-%d %H:%M:%S"), "scene": args.scene,
-           "target": args.target, "model": Path(args.model).name, **metrics}
-    new_file = not RESULTS_CSV.exists()
-    with RESULTS_CSV.open("a", newline="", encoding="utf-8") as fh:
+           "target": args.target, "model": Path(args.model).name, **metrics,
+           "seconds": args.seconds, "imgsz": args.imgsz, "device": args.device,
+           "base_threshold": CONFIDENCE_THRESHOLD,
+           "target_threshold": TARGET_CONFIDENCE_THRESHOLD,
+           "confirm_window": TARGET_CONFIRM_WINDOW,
+           "confirm_min_hits": TARGET_CONFIRM_MIN_HITS, "hold_s": TARGET_HOLD_S}
+    results_dir.mkdir(parents=True, exist_ok=True)
+    path = results_file(list(row), results_dir)
+    new_file = not path.exists()
+    with path.open("a", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=list(row))
         if new_file:
             writer.writeheader()
         writer.writerow(row)
-    return RESULTS_CSV
+    return path
 
 
 def main() -> None:

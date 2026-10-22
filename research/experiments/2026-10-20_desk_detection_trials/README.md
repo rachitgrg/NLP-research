@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Date | 2026-10-20, 19:26–19:44 (timestamps in the CSV; commits `babe5f8`, `d93959f`) |
-| Produced by | `module2_vision/tools/detection_trials.py --scene "<name>"` (appends one row per run to `module2_vision/tools/results/detection_trials.csv`) |
+| Produced by | `module2_vision/tools/detection_trials.py --scene "<name>"` (at the time it appended one row per run to `module2_vision/tools/results/detection_trials.csv`; since 2026-10-22 new runs go to `detection_trials_<date>.csv` with their settings, and this file is frozen) |
 | Data | `detection_trials_2026-10-20.csv` (frozen copy, 10 rows) |
 | Setup | Laptop webcam at 30 FPS, target `bottle`, one 15 s run (~450 frames) per scene. Each frame goes through the model once; both pipelines are computed from the same frames. |
 | OLD pipeline | target present if confidence ≥ 0.40 in that frame |

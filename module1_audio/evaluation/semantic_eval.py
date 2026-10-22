@@ -87,6 +87,9 @@ def evaluate_semantics(gold_path: str, results_path: str):
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    parser = argparse.ArgumentParser(description="Semantic accuracy of ASR transcripts.")
+    parser.add_argument("--results", default=os.path.join(base_dir, "results.csv"),
+                        help="results CSV (default: results.csv, the 2026-09-16 run of record)")
+    args = parser.parse_args()
     gold_path = os.path.join(base_dir, "semantic_gold.csv")
-    results_path = os.path.join(base_dir, "results.csv")
-    evaluate_semantics(gold_path, results_path)
+    evaluate_semantics(gold_path, args.results)

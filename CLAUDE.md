@@ -20,14 +20,14 @@ Research record (source of truth for the paper): `research/` (start at `research
 ## How to run
 - Voice only: `cd module1_audio; ..\.venv\Scripts\python main.py`
 - Assistant: `cd module2_vision; ..\.venv\Scripts\python main.py --target bottle --navigate` (desk test: add `--no-obstacles`) or `..\.venv\Scripts\python assistant.py`
-- ASR benchmark: `cd module1_audio; ..\.venv\Scripts\python evaluation\evaluate_models.py` (overwrites `evaluation/results.csv`; ask first)
-- Detection trials: `cd module2_vision; ..\.venv\Scripts\python tools\detection_trials.py --scene "<name>"`
+- ASR benchmark: `cd module1_audio; ..\.venv\Scripts\python evaluation\evaluate_models.py` (calls the paid Sarvam API; ask first). Writes `evaluation/runs/results_<date_time>.csv`; `evaluation/results.csv` is the 2026-09-16 run of record and is never written. Plot or score a run with `plot_results.py --results <csv>` / `semantic_eval.py --results <csv>`.
+- Detection trials: `cd module2_vision; ..\.venv\Scripts\python tools\detection_trials.py --scene "<name>"` (appends to `tools/results/detection_trials_<date>.csv` with the settings used; `detection_trials.csv` is the frozen 2026-10-20 record)
 - Training: `cd module2_vision\training; python train.py` (ask first; overwrites `runs/train/`)
 - Paper tables/figures: `.\.venv\Scripts\python research\results\scripts\generate_tables.py --out <scratch>` (without `--out` it overwrites committed outputs; ask first)
 
 ## Tests
 - `cd module1_audio; ..\.venv\Scripts\python -m pytest tests -q` (96 tests on 2026-10-21)
-- `cd module2_vision; ..\.venv\Scripts\python -m pytest tests -q` (160 tests on 2026-10-21)
+- `cd module2_vision; ..\.venv\Scripts\python -m pytest tests -q` (164 tests on 2026-10-22)
 - Tests mock the camera, YOLO, and TTS. Hardware behaviour needs a manual run.
 
 ## Conventions

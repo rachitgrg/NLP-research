@@ -3,7 +3,7 @@
 This document gives the environment and the steps to reproduce the Stage-1 benchmarks, the dataset processing and the detector training.
 
 > Updated 2026-10-21 for the new repository layout (old → new paths: `README.md` in this folder). The original Stage-1 version (2026-09-16) is in git history at tag `pre-restructure-2026-10-21`.
-> **Re-running a step overwrites its working output** (e.g. `module1_audio/evaluation/results.csv`). The versions of record are the frozen copies in `research/experiments/`. Save new runs as new dated files or experiments.
+> Since 2026-10-22 the ASR benchmark and the detection trials write new dated files and never touch earlier results. Training, the notebooks and the figure scripts (without `--out`) still overwrite their outputs. The versions of record are the frozen copies in `research/experiments/`; record new runs as new dated experiments.
 
 ## 1. Environment
 - **Operating System:** Windows
@@ -34,9 +34,10 @@ Run from `module1_audio/` with the root environment:
 ```powershell
 cd module1_audio
 python evaluation\record_samples.py      # (optional) re-record the 10 samples
-python evaluation\evaluate_models.py     # 3 models -> evaluation\results.csv  (OVERWRITES it)
-python evaluation\plot_results.py        # -> evaluation\comparison_graph_v2.png
-python evaluation\semantic_eval.py       # prints semantic accuracy vs evaluation\semantic_gold.csv
+python evaluation\evaluate_models.py     # 3 models -> evaluation\runs\results_<date_time>.csv (new file per run)
+python evaluation\plot_results.py --results evaluation\runs\results_<date_time>.csv   # -> same name .png
+python evaluation\semantic_eval.py --results evaluation\runs\results_<date_time>.csv  # prints accuracy vs semantic_gold.csv
+# without --results both scripts read evaluation\results.csv (the 2026-09-16 run of record)
 python -m pytest tests -q                # unit tests
 ```
 Paper figures and tables: from the project root run `python research\results\scripts\generate_tables.py` and `generate_figures.py`. Add `--out <folder>` to write somewhere other than `research/`.

@@ -36,4 +36,4 @@ In this controlled 10-utterance pilot, Sarvam had the lowest WER and Whisper Tin
 ## Caveats
 - n = 10 utterances from one speaker, in English only, recorded in a quiet room. There is no significance testing. Present this as a pilot, not as a benchmark.
 - Sarvam latency includes the network round trip; Whisper ran on CPU (int8).
-- ⚠ Re-running `evaluate_models.py` overwrites `module1_audio/evaluation/results.csv`. The frozen copy in this folder is the version of record.
+- The frozen copy in this folder is the version of record. (Until 2026-10-22, re-running `evaluate_models.py` overwrote `module1_audio/evaluation/results.csv`; it now writes `evaluation/runs/results_<date_time>.csv` instead.)

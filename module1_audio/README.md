@@ -173,9 +173,16 @@ python evaluation/plot_results.py
 python evaluation/semantic_eval.py
 ```
 
-Results are saved to `evaluation/results.csv` and `evaluation/comparison_graph_v2.png`.
-⚠ `evaluate_models.py` **overwrites** `evaluation/results.csv`. Before a new run, keep the old file;
-afterwards, record the run as a new dated experiment in `../research/experiments/`.
+Each benchmark run is saved to its own file, `evaluation/runs/results_<date_time>.csv`.
+`evaluation/results.csv` and `comparison_graph_v2.png` hold the 2026-09-16 run of record and are
+never overwritten. To plot or score a new run:
+
+```bash
+python evaluation/plot_results.py --results evaluation/runs/results_<date_time>.csv   # -> <same name>.png
+python evaluation/semantic_eval.py --results evaluation/runs/results_<date_time>.csv
+```
+
+Record each new run as a dated experiment in `../research/experiments/`.
 
 ---
 
