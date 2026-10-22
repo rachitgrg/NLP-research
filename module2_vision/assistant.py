@@ -31,7 +31,6 @@ from config.config import (  # noqa: E402
     CONFIDENCE_THRESHOLD,
     INFERENCE_DEVICE,
     INFERENCE_IMG_SIZE,
-    TARGET_CONFIDENCE_THRESHOLD,
     YOLO_MODEL_PATH,
     environment_warning,
 )
@@ -40,7 +39,8 @@ from detection.yolo_detector import YOLODetector
 from guidance.obstacle_detector import ObstacleDetector
 from guidance.spatial_locator import SpatialLocator
 from matching.target_matcher import TargetMatcher
-from matching.target_normalizer import is_supported_class, normalize_target
+from detection.detector_factory import prepare_target_detector
+from matching.target_normalizer import normalize_target
 from matching.temporal_filter import TargetTracker
 from navigation.navigation_controller import NavigationController
 
@@ -162,23 +162,24 @@ def run_assistant(
 
     print("Model ready.")
 
-    supported = is_supported_class(normalized, detector.class_names)
+    # Closed-set model if it knows the target; otherwise the open-vocabulary
+    # model (R3) runs alongside it.  See detection/detector_factory.py.
+    closed_set_classes = dict(detector.class_names)
+    setup = prepare_target_detector(detector, normalized, device)
+    detector = setup.detector
 
     print(f"\n  Requested Target : {raw_target!r}")
     print(f"  Normalized Class : {normalized!r}")
-    print(f"  Supported Status : {'YES' if supported else 'NO (not in the loaded model classes)'}")
+    print(f"  Detection        : {setup.message}")
 
-    if not supported:
-        examples = ", ".join(sorted(detector.class_names.values())[:6])
+    if setup.mode == "unsupported":
+        examples = ", ".join(sorted(closed_set_classes.values())[:6])
         msg = f"{raw_target} is not a supported object for the vision model. Supported objects include {examples}."
         speaker.speak(msg, priority=SpeechPriority.EMERGENCY, force=True)
         print(f"\n[ALERT] {msg}")
         time.sleep(4.0)  # let the message finish before the speaker thread stops
         speaker.stop()
         return
-
-    # Accept the requested object at a lower confidence than other classes.
-    detector.set_target(normalized, TARGET_CONFIDENCE_THRESHOLD)
 
     # Acknowledge target
     speaker.speak(f"Looking for {normalized}. Please hold camera steady and scan slowly.")

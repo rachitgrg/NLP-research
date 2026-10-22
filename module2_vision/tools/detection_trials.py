@@ -171,13 +171,19 @@ def record(args: argparse.Namespace) -> list[Sample]:
 
 
 def results_file(fieldnames: list[str], results_dir: Path = RESULTS_DIR) -> Path:
-    """Today's results file; a timestamped one if today's has other columns."""
-    path = results_dir / f"detection_trials_{time.strftime('%Y-%m-%d')}.csv"
-    if path.exists():
-        with path.open(newline="", encoding="utf-8") as fh:
-            if next(csv.reader(fh), None) != fieldnames:
-                path = path.with_name(f"{path.stem}_{time.strftime('%H%M%S')}.csv")
-    return path
+    """
+    Today's results file with these columns: the first of
+    ``detection_trials_<date>.csv`` / ``…_<HHMMSS>.csv`` whose header matches,
+    else a new timestamped file (never mixes columns, never overwrites).
+    """
+    base = results_dir / f"detection_trials_{time.strftime('%Y-%m-%d')}.csv"
+    for candidate in [base, *sorted(results_dir.glob(f"{base.stem}_*.csv"))]:
+        if not candidate.exists():
+            return candidate
+        with candidate.open(newline="", encoding="utf-8") as fh:
+            if next(csv.reader(fh), None) == fieldnames:
+                return candidate
+    return base.with_name(f"{base.stem}_{time.strftime('%H%M%S')}.csv")
 
 
 def save_row(

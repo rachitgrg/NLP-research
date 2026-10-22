@@ -56,3 +56,13 @@ def test_changed_columns_start_a_new_file(tmp_path):
     path = save_row(_args(), METRICS, tmp_path)
     assert path != today
     assert today.read_text(encoding="utf-8") == "timestamp,scene,old_column\n"
+
+
+def test_later_runs_reuse_the_matching_timestamped_file(tmp_path):
+    """Regression: each run with new columns used to open yet another timestamped file."""
+    today = tmp_path / f"detection_trials_{time.strftime('%Y-%m-%d')}.csv"
+    today.write_text("timestamp,scene,old_column\n", encoding="utf-8")
+    first = save_row(_args("a"), METRICS, tmp_path)
+    second = save_row(_args("b"), METRICS, tmp_path)
+    assert first == second != today
+    assert [r["scene"] for r in _rows(first)] == ["a", "b"]

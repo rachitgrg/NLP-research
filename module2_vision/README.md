@@ -232,23 +232,35 @@ Each detected object is represented as a plain Python dict:
 | `motorbike` | `motorcycle` |
 | `bike` | `bicycle` |
 
-### Vocabulary Limitation
+### Objects outside the 15 classes (open-vocabulary fallback, R3)
 
-The detector can only find the classes it was trained on (15 for the default fine-tuned
-model, 80 for stock `yolov8n.pt`). Objects detectable by **neither** model
-(returned as `unsupported_class`) — see `IMPLEMENTATION_ROADMAP.md` for the planned
-open-vocabulary fallback:
+The closed-set model only knows its 15 classes. Since 2026-10-23, any other target
+(watch, slippers, glasses, wallet, …) is searched with an **open-vocabulary** model
+(`detection/open_vocab_detector.py`, default YOLOE-26s with text prompts) that runs
+**alongside** the closed-set model, which still provides people/furniture for obstacle
+warnings (`detection/detector_factory.py`, `HybridDetector`). The open-vocabulary model is
+only loaded when needed; for the 15 classes nothing changes.
 
-| User says | Why not supported |
-|---|---|
-| `watch` / `wristwatch` | COCO has `clock` (wall clocks), not wristwatches. Mapping would be misleading. |
-| `key` / `keys` | No COCO class. |
-| `pen` / `pencil` | No COCO class. |
-| `slipper` / `shoe` | No COCO class. |
-| `glasses` | No COCO class. |
+Measured at a desk (`research/experiments/2026-10-23_open_vocab_comparison/`, EXP-06):
 
-> **Important**: `"watch"` is deliberately **not** mapped to `"clock"`. A wristwatch is not
-> a wall clock. Reporting a false positive to a visually impaired user would be harmful.
+| Target | Found (0.25 + smoothing) | Note |
+|---|---|---|
+| watch, worn on the wrist | 99.7 % of frames | |
+| watch lying flat on a desk | 0 % | seen only at low confidence (~0.12) |
+| slippers on the floor | 99.7 % | |
+| keys on a table | 99.7 % with prompt "bunch of keys" | 0 % with "keys" (EXP-07); the app uses "bunch of keys" automatically |
+| watch or keys held in the hand | 0 % | with every tested prompt (EXP-07) |
+| object absent (watch, keys) | 0 % | no false sightings |
+
+Speed: ~32 ms per frame for both models together on the RTX 3050 (≈ 8 ms closed-set alone).
+Untested words (e.g. wallet) are accepted but their accuracy is unknown.
+
+> **Important**: `"watch"` is still deliberately **not** mapped to `"clock"`. A wristwatch is not
+> a wall clock. Synonyms map to the open-vocabulary word: `wristwatch` → `watch`,
+> `eyeglasses` / `spectacles` → `glasses`.
+
+Weights live in `weights/` (gitignored): `yoloe-26s-seg.pt` + its text encoder
+`mobileclip2_b.ts`. If they are missing, the target is reported as unsupported.
 
 ---
 
@@ -383,6 +395,10 @@ All default values live in [`config/config.py`](config/config.py):
 | `ARRIVAL_CONFIRM_FRAMES` | `5` | `ARRIVAL_CONFIRM_FRAMES` |
 | `SEARCH_TIMEOUT_S` | `60` (0 = off) | `SEARCH_TIMEOUT_S` |
 | `MAX_CONSECUTIVE_READ_FAILURES` | `50` | `MAX_CONSECUTIVE_READ_FAILURES` |
+| `OPEN_VOCAB_ENABLED` | `true` | `OPEN_VOCAB_ENABLED` |
+| `OPEN_VOCAB_MODEL_PATH` | `yoloe-26s-seg.pt` (in `weights/`) | `OPEN_VOCAB_MODEL_PATH` |
+| `OPEN_VOCAB_CONFIDENCE_THRESHOLD` | `0.25` | `OPEN_VOCAB_CONFIDENCE_THRESHOLD` |
+| `OPEN_VOCAB_PROMPTS` | `keys=bunch of keys;key=bunch of keys` | `OPEN_VOCAB_PROMPTS` (format `target=prompt1|prompt2;…`) |
 
 Speech settings (`TTS_*`) are in `../module1_audio/audio_feedback/tts_config.py`, overridable with
 the same environment variables.
@@ -422,9 +438,11 @@ timeout, and model-vocabulary support checks.
 
 ## Limitations
 
-- Only the 80 COCO object classes are detectable (pretrained weights).
-- Inference runs on CPU by default — typically 5–15 FPS on a mid-range laptop.
-  Passing `--device cuda` improves throughput if a CUDA GPU is available.
-- The confidence threshold (`0.40`) may need tuning per environment.
-- No object tracking — each frame is matched independently.
-- `"watch"` (wristwatch) cannot be found; the model knows `clock` (wall/table clock) only.
+- The closed-set model knows 15 classes; other objects go to the open-vocabulary model, whose
+  accuracy is measured only for watch, keys and slippers at one desk (EXP-06, EXP-07). Objects
+  held in the hand were not found, keys only with the prompt "bunch of keys", and a watch lying
+  flat only at low confidence.
+- The device is chosen automatically (`cuda` if available); on CPU expect far lower FPS,
+  especially with the open-vocabulary model.
+- The confidence thresholds (0.40, target 0.25) may need tuning per environment.
+- Smoothing is per target (2-of-5 frames, 0.5 s hold); there is no multi-object tracking.

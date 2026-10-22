@@ -18,6 +18,10 @@ PROJECT_ROOT = MODULE_ROOT.parent                          # NLP-Research/
 # audio_feedback (TTS) and the voice pipeline are imported from there.
 MODULE1_ROOT = PROJECT_ROOT / "module1_audio"
 
+# Downloaded model files (gitignored): YOLO weights and the text encoders
+# used by open-vocabulary detectors.
+WEIGHTS_DIR = MODULE_ROOT / "weights"
+
 
 def add_module1_to_path() -> None:
     """Make module1_audio/ importable (for audio_feedback).
@@ -144,6 +148,37 @@ TARGET_CONFIDENCE_THRESHOLD: float = float(os.environ.get("TARGET_CONFIDENCE_THR
 TARGET_CONFIRM_WINDOW: int = int(os.environ.get("TARGET_CONFIRM_WINDOW", "5"))
 TARGET_CONFIRM_MIN_HITS: int = int(os.environ.get("TARGET_CONFIRM_MIN_HITS", "2"))
 TARGET_HOLD_S: float = float(os.environ.get("TARGET_HOLD_S", "0.5"))
+
+# ── Open-vocabulary fallback (roadmap R3, decisions.md D-13) ──
+# Targets the closed-set model cannot detect (watch, slippers, …) are searched
+# with this model, alongside the closed-set model (which still provides the
+# obstacles).  EXP-06: YOLOE-26s text prompt found a worn watch in 99.7 % of
+# frames (vs 76.4 % prompt-free, 18.3 % YOLO-World) with no false sightings.
+OPEN_VOCAB_ENABLED: bool = os.environ.get("OPEN_VOCAB_ENABLED", "true").lower() in ("true", "1", "yes")
+OPEN_VOCAB_MODEL_PATH: str = os.environ.get("OPEN_VOCAB_MODEL_PATH", "yoloe-26s-seg.pt")
+# Same as TARGET_CONFIDENCE_THRESHOLD for now; EXP-06 suggests 0.10 would help
+# objects lying flat, but false-positive evidence is only 2 scenes (D-13).
+OPEN_VOCAB_CONFIDENCE_THRESHOLD: float = float(os.environ.get("OPEN_VOCAB_CONFIDENCE_THRESHOLD", "0.25"))
+
+
+def _parse_prompt_map(spec: str) -> dict[str, list[str]]:
+    """'keys=bunch of keys;key=bunch of keys|keys' → {'keys': ['bunch of keys'], 'key': ['bunch of keys', 'keys']}"""
+    result: dict[str, list[str]] = {}
+    for item in spec.split(";"):
+        target, _, prompts = item.partition("=")
+        words = [w.strip().lower() for w in prompts.split("|") if w.strip()]
+        if target.strip() and words:
+            result[target.strip().lower()] = words
+    return result
+
+
+# Words given to the open-vocabulary model for a target (default: the target
+# itself). EXP-07: keys on a table 99.7 % found with "bunch of keys" vs 0 %
+# with "keys" (decisions.md D-14). Speech still uses the user's word.
+# Env format: "target=prompt1|prompt2;target2=prompt".
+OPEN_VOCAB_PROMPTS: dict[str, list[str]] = _parse_prompt_map(
+    os.environ.get("OPEN_VOCAB_PROMPTS", "keys=bunch of keys;key=bunch of keys")
+)
 
 # ── Session control ───────────────────────────────────────────
 # Consecutive "reached" frames needed before the search ends as ARRIVED

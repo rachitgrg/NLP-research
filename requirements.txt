@@ -17,6 +17,12 @@
 # ── Vision runtime (module2_vision) ───────────────────────────
 ultralytics==8.4.172
 opencv-python==5.0.0.93
+# Open-vocabulary detection (R3): CLIP tokenizer/encoder used by YOLOE and
+# YOLO-World text prompts. Pinned to the commit installed on 2026-10-22.
+# Weights and text encoders are downloaded into module2_vision/weights/.
+clip @ git+https://github.com/ultralytics/CLIP.git@7ffa84b3bfa40c42ecc1c77147a855e69cb2dd40
+ftfy==6.3.1
+regex==2026.9.29
 
 # ── Voice + speech output (module1_audio) ─────────────────────
 sarvamai==0.1.32

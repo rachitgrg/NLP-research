@@ -14,7 +14,7 @@
 #       python main.py --target bottle
 #       python main.py --target "cell phone"
 #       python main.py --target phone        # alias -> "cell phone"
-#       python main.py --target watch        # unsupported COCO class
+#       python main.py --target watch        # not a closed-set class → open-vocabulary model (R3)
 #
 #   b) Voice input via Module 1 (full integration):
 #       python main.py --voice
@@ -46,7 +46,6 @@ from config.config import (
     CONFIDENCE_THRESHOLD,
     INFERENCE_DEVICE,
     INFERENCE_IMG_SIZE,
-    TARGET_CONFIDENCE_THRESHOLD,
     YOLO_MODEL_PATH,
     add_module1_to_path,
     environment_warning,
@@ -54,7 +53,8 @@ from config.config import (
 from detection.camera_detector import run_camera_loop
 from detection.yolo_detector import YOLODetector
 from matching.target_matcher import TargetMatcher
-from matching.target_normalizer import is_supported_class, normalize_target
+from detection.detector_factory import prepare_target_detector
+from matching.target_normalizer import normalize_target
 
 # TTS (audio_feedback) and the voice recorder live in module1_audio/.
 add_module1_to_path()
@@ -302,16 +302,14 @@ def main() -> None:
 
     print("Model ready.\n")
 
-    # Support depends on the LOADED model's vocabulary (15 classes for the
-    # fine-tuned model, 80 for stock yolov8n.pt), not on COCO-80.
-    if raw_target and not is_supported_class(normalize_target(raw_target), detector.class_names):
-        print(
-            f"  WARNING: {normalize_target(raw_target)!r} is not one of the loaded model's "
-            f"{len(detector.class_names)} classes (will show as UNSUPPORTED)\n"
-        )
-    elif raw_target:
-        # Accept the requested object at a lower confidence than other classes.
-        detector.set_target(normalize_target(raw_target), TARGET_CONFIDENCE_THRESHOLD)
+    # Closed-set model if it knows the target; otherwise the open-vocabulary
+    # model (R3) runs alongside it.  See detection/detector_factory.py.
+    if raw_target:
+        setup = prepare_target_detector(detector, normalize_target(raw_target), args.device)
+        detector = setup.detector
+        print(f"  Detection  : {setup.message}")
+        if setup.mode == "unsupported":
+            print("  WARNING: the target will show as UNSUPPORTED\n")
 
     # ── M3/M4/M5: initialise navigation controller or target matcher ──
     target_matcher = None

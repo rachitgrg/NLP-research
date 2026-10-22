@@ -100,6 +100,15 @@ _ALIASES: dict[str, str] = {
     # motorbike / bike
     "motorbike":    "motorcycle",
     "bike":         "bicycle",
+
+    # Open-vocabulary targets (R3): synonyms → the word the open-vocabulary
+    # models know (EXP-06 vocab_coverage_2026-10-23.txt).  "watch" itself is
+    # still never mapped to "clock".
+    "wristwatch":   "watch",
+    "wrist watch":  "watch",
+    "eyeglasses":   "glasses",
+    "spectacles":   "glasses",
+    "specs":        "glasses",
 }
 
 # ── Stop-words/prefixes to strip before matching ─────────────
