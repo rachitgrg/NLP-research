@@ -77,11 +77,25 @@ class NavigationController:
         self.finish_reason: Optional[str] = None
         self._arrival_streak: int = 0
         self._session_start_time: Optional[float] = None
+        # Latency measurement (EXP-09): monotonic times of the first sighting
+        # and of the confirmed arrival; see timings().
+        self.first_found_time: Optional[float] = None
+        self.arrived_time: Optional[float] = None
 
         # Last target box, for the obstacle check (see process_frame step 3).
         self.obstacle_target_memory_s = obstacle_target_memory_s
         self._last_target_bbox: Optional[list[int]] = None
         self._last_target_bbox_time: float = 0.0
+
+    def timings(self) -> dict[str, Optional[float]]:
+        """Seconds from the first processed frame to the first sighting and to arrival (None if not reached)."""
+        def since_start(t: Optional[float]) -> Optional[float]:
+            if t is None or self._session_start_time is None:
+                return None
+            return round(t - self._session_start_time, 3)
+
+        return {"first_sighting_s": since_start(self.first_found_time),
+                "arrival_s": since_start(self.arrived_time)}
 
     def process_frame(
         self,
@@ -163,6 +177,8 @@ class NavigationController:
         if is_found and match_result.get("bbox"):
             self._last_target_bbox = match_result["bbox"]
             self._last_target_bbox_time = now
+            if self.first_found_time is None:
+                self.first_found_time = now
         recent_target_bbox = (
             self._last_target_bbox
             if self._last_target_bbox is not None
@@ -219,6 +235,8 @@ class NavigationController:
                 self.speaker.speak(instruction, priority=SpeechPriority.ARRIVAL)
                 if self._arrival_streak >= self.arrival_confirm_frames:
                     self.finish_reason = "arrived"
+                    if self.arrived_time is None:
+                        self.arrived_time = now
             else:
                 self._arrival_streak = 0
                 self.state = NavigationState.GUIDING

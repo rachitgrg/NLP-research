@@ -31,12 +31,14 @@ from config.config import (  # noqa: E402
     CONFIDENCE_THRESHOLD,
     INFERENCE_DEVICE,
     INFERENCE_IMG_SIZE,
+    OFFLINE_MODE,
     REPLY_LANGUAGE,
     YOLO_MODEL_PATH,
     environment_warning,
 )
 from guidance.phrases import choose_reply_language, phrase  # noqa: E402
-from speech.asr_config import ASR_LANGUAGE  # noqa: E402  (module1_audio)
+from navigation.session_log import StageTimer, append_session_row  # noqa: E402
+from speech.asr_config import ASR_BACKEND, ASR_LANGUAGE, ASR_MODEL_SIZE  # noqa: E402  (module1_audio)
 from detection.camera_detector import run_camera_loop
 from detection.yolo_detector import YOLODetector
 from guidance.obstacle_detector import ObstacleDetector
@@ -58,17 +60,20 @@ ASSISTANT_BANNER = """\
 ╔══════════════════════════════════════════════════════════════╗
 ║        BLIND-ASSISTIVE OBJECT FINDING & NAVIGATION          ║
 ║                                                              ║
-║  1. Voice Input (Module 1 STT + spaCy Query Parser)          ║
+║  1. Voice Input (on-device Whisper + spaCy Query Parser)     ║
 ║  2. Live YOLO Detection & Target Matching                    ║
 ║  3. Spatial Directional Guidance (5 Horizontal Zones)        ║
 ║  4. Dynamic Obstacle Detection & Corridor Avoidance          ║
-║  5. Real-Time Offline Speech Feedback (pyttsx3)              ║
+║  5. Offline Speech Feedback in the user's language           ║
 ╚══════════════════════════════════════════════════════════════╝
 """
 
 
-def _get_target_from_speech(duration: int, speaker: TTSSpeaker) -> tuple[str | None, str | None]:
+def _get_target_from_speech(
+    duration: int, speaker: TTSSpeaker, timer: StageTimer | None = None
+) -> tuple[str | None, str | None]:
     """Prompt user and extract (target object, spoken language) using Module 1."""
+    timer = timer or StageTimer()
     speaker.speak(phrase("ask_target", speaker.language), priority=SpeechPriority.EMERGENCY, force=True)
     time.sleep(1.8)
 
@@ -84,13 +89,16 @@ def _get_target_from_speech(duration: int, speaker: TTSSpeaker) -> tuple[str | N
     audio_path = None
     try:
         print(f"\nListening for {duration} seconds... speak now.")
-        audio_path = record_audio(duration=duration)
+        with timer.stage("record_s"):
+            audio_path = record_audio(duration=duration)
     except Exception as exc:
         print(f"[ERROR] Microphone capture failed: {exc}")
         return None, None
 
     try:
-        target_info = run_voice_pipeline(audio_path)
+        # Includes the speech-model load on the first request of a process.
+        with timer.stage("asr_s"):
+            target_info = run_voice_pipeline(audio_path)
     except Exception as exc:
         print(f"[ERROR] Voice pipeline failed: {exc}")
         return None, None
@@ -117,8 +125,10 @@ def run_assistant(
     device: str = INFERENCE_DEVICE,
     use_mock_audio: bool = False,
     obstacles: bool = True,
+    scenario: str = "",
 ) -> None:
     """Run full interactive assistive navigation session."""
+    timer = StageTimer()
     print(ASSISTANT_BANNER)
     env_warning = environment_warning()
     if env_warning:
@@ -135,7 +145,7 @@ def run_assistant(
     # If no target specified via CLI, get from voice or keyboard prompt
     if not raw_target:
         if listen_voice:
-            raw_target, spoken_language = _get_target_from_speech(duration, speaker)
+            raw_target, spoken_language = _get_target_from_speech(duration, speaker, timer)
 
         if not raw_target:
             speaker.speak("Please type the target object in the terminal.")
@@ -166,12 +176,13 @@ def run_assistant(
     # model, 80 for stock yolov8n.pt).
     print("\nLoading YOLO vision model...")
     try:
-        detector = YOLODetector(
-            model_path=model_path,
-            confidence_threshold=conf,
-            img_size=INFERENCE_IMG_SIZE,
-            device=device,
-        )
+        with timer.stage("model_load_s"):
+            detector = YOLODetector(
+                model_path=model_path,
+                confidence_threshold=conf,
+                img_size=INFERENCE_IMG_SIZE,
+                device=device,
+            )
     except Exception as exc:
         logger.error("Failed to load YOLO model: %s", exc)
         speaker.speak("Vision model failed to load. Exiting.")
@@ -183,7 +194,8 @@ def run_assistant(
     # Closed-set model if it knows the target; otherwise the open-vocabulary
     # model (R3) runs alongside it.  See detection/detector_factory.py.
     closed_set_classes = dict(detector.class_names)
-    setup = prepare_target_detector(detector, normalized, device)
+    with timer.stage("detector_setup_s"):
+        setup = prepare_target_detector(detector, normalized, device)
     detector = setup.detector
 
     print(f"\n  Requested Target : {raw_target!r}")
@@ -222,6 +234,19 @@ def run_assistant(
         )
     finally:
         speaker.stop()
+        row = {
+            "scenario": scenario, "target": normalized, "detection_mode": setup.mode,
+            "spoken_language": spoken_language or "", "reply_language": reply_language,
+            "asr_backend": ASR_BACKEND if spoken_language else "typed",
+            "asr_model": ASR_MODEL_SIZE if spoken_language and ASR_BACKEND == "whisper" else "",
+            "device": device, "offline_mode": OFFLINE_MODE, "camera_index": camera_idx,
+            "finish_reason": nav_controller.finish_reason or "stopped",
+            **timer.values, **nav_controller.timings(),
+        }
+        path = append_session_row(row)
+        print("\n  Session timings  : " + ", ".join(
+            f"{k}={v}" for k, v in row.items() if k.endswith("_s") and v is not None))
+        print(f"  Logged to        : {path}")
 
 
 def main() -> None:
@@ -234,6 +259,7 @@ def main() -> None:
     parser.add_argument("--mock-audio", action="store_true", help="Print audio cues to terminal instead of pyttsx3")
     parser.add_argument("--no-obstacles", action="store_true",
                         help="Disable obstacle warnings (desk testing with a webcam that faces you)")
+    parser.add_argument("--scenario", default="", help="Label stored in the session latency log (EXP-09)")
     args = parser.parse_args()
 
     run_assistant(
@@ -245,6 +271,7 @@ def main() -> None:
         device=args.device,
         use_mock_audio=args.mock_audio,
         obstacles=not args.no_obstacles,
+        scenario=args.scenario,
     )
 
 
