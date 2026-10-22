@@ -1,0 +1,21 @@
+prompt_id,object,english,hindi_suggestion
+p01,bottle,Where is my bottle?,मेरी बोतल कहाँ है?
+p02,cup,Find my cup.,मेरा कप ढूँढो।
+p03,cell phone,Where is my phone?,मेरा फ़ोन कहाँ है?
+p04,laptop,Where is my laptop?,मेरा लैपटॉप कहाँ है?
+p05,book,Where is my book?,मेरी किताब कहाँ है?
+p06,bowl,Find the bowl.,कटोरी ढूँढो।
+p07,bag|backpack,Where is my bag?,मेरा बैग कहाँ है?
+p08,umbrella,Where is the umbrella?,छाता कहाँ है?
+p09,chair,Find a chair for me.,मेरे लिए कुर्सी ढूँढो।
+p10,tv,Where is the TV?,टीवी कहाँ है?
+p11,watch,Where is my watch?,मेरी घड़ी कहाँ है?
+p12,keys|key,Where are my keys?,मेरी चाबी कहाँ है?
+p13,slippers|slipper|sandals|sandal|flip flops,Where are my slippers?,मेरी चप्पल कहाँ है?
+p14,glasses,Where are my glasses?,मेरा चश्मा कहाँ है?
+p15,wallet|purse,Where is my wallet?,मेरा पर्स कहाँ है?
+p16,medicine|medicines|tablet|tablets|pills,Where is my medicine?,मेरी दवाई कहाँ है?
+p17,charger|phone charger,Find my phone charger.,मेरा फ़ोन चार्जर ढूँढो।
+p18,bottle,Where is my black bottle?,मेरी काली बोतल कहाँ है?
+p19,cell phone,Is my phone on the table?,क्या मेरा फ़ोन मेज़ पर है?
+p20,cup,Can you find the blue cup near the laptop?,लैपटॉप के पास वाला नीला कप ढूँढ सकते हो?
