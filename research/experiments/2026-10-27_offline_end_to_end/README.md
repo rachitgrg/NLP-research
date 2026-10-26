@@ -1,6 +1,6 @@
 # EXP-09 · Offline end-to-end sessions (roadmap R9, claim C19)
 
-**Status (2026-10-27): run 1 done (10 sessions, 01:55–02:08).** Two bugs were found and fixed afterwards (see *Results*); the watch/keys sessions need a re-run with the fix. The manual observation form isn't filled in yet, and the tester still has to confirm the network-off check for each session.
+**Status (2026-10-27): run 1 (10 sessions) and the watch/keys re-run after the fix (4 sessions) are done; 14/14 targets heard correctly, 10/10 sessions in the final configuration arrived.** `observations.csv` was filled in from the session log and the tester's verbal summary. Still open: the tester's confirmation that the network was off (C19).
 
 | | |
 |---|---|
@@ -117,7 +117,21 @@ Files: `session_latency_2026-10-27.csv` (copied from `module2_vision/tools/resul
 
 **Bug 2, ASR stage 8–10 s:** the Whisper model was loaded after the user spoke, so the first reply waited ~8 s. **Fix:** `assistant.py` loads the speech model before asking ("Loading speech model..."), and the log has a separate `asr_load_s` column. A log file with the old columns is never appended to; a new timestamped file is started instead.
 
-**Still to do:** re-run E4, E5, H4, H5 with the fix (`--scenario E4_watch_fix` etc.); fill in `observations.csv`; confirm the network-off check for run 1.
+### Re-run of the open-vocabulary sessions after the fixes (2026-10-27 02:27–02:31, commit `5b1c847`)
+File: `session_latency_2026-10-27_022725.csv` (new file because of the added `asr_load_s` column). Same setup as run 1.
+
+| Session | Heard target | Finish | First sighting | Arrival | Speech-model load (before prompt) | Recognition |
+|---|---|---|---|---|---|---|
+| E4 watch (worn) | watch | arrived | 0.08 s | 12.2 s | 8.0 s | 1.31 s |
+| E5 keys (desk) | keys | arrived | 0.19 s | 24.3 s | 8.1 s | 1.33 s |
+| H4 watch (worn) | watch | arrived | 0.14 s | 17.4 s | 7.7 s | 1.33 s |
+| H5 keys (desk) | key | arrived | 0.07 s | 10.3 s | 7.4 s | 1.17 s |
+
+Tester: "both objects are detected successfully". With both fixes, the reply after the request waits only for recognition (1.2–1.3 s), not for the model load.
+
+**Overall (final configuration = closed-set sessions of run 1 + the re-run):** 10/10 targets heard correctly, 10/10 sessions arrived (5.8–31.3 s), replies in the spoken language. `observations.csv` marks what comes from the log and what comes from the tester's summary; the exact words said weren't recorded.
+
+**Still to do:** the tester's confirmation that Airplane mode was on and the connectivity check printed `False` (the logs only show `OFFLINE_MODE=True`, the software flag).
 
 ## Caveats (known in advance)
 - One tester, one desk, the laptop webcam facing the user; 5 scenarios per language, one attempt each. This shows that the system *runs* offline, not how accurate it is.

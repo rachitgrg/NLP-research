@@ -4,6 +4,13 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-27 — EXP-09 re-run: watch and keys arrive after the fix
+- **What:** the user re-ran E4/E5/H4/H5 (worn watch, keys on the desk; English and Hindi) with commit `5b1c847`. All 4 ended `arrived` (10.3–24.3 s). Recognition 1.17–1.33 s after the request; the 7.4–8.1 s model load now happens before the prompt.
+- **Overall:** final configuration 10/10 sessions arrived, 14/14 targets heard correctly. `observations.csv` filled in from the logs and the tester's verbal summary (exact wording not recorded).
+- **Pending:** the tester's confirmation that the network was physically off (C19).
+- **Next question raised by the user:** a watch lying on a table is detected far worse than a worn one (EXP-06: 0 % at 0.25), yet a table is where a blind user would look for it. Plan only, nothing changed yet.
+- **Links:** `experiments/2026-10-27_offline_end_to_end/` (`session_latency_2026-10-27_022725.csv`, `observations.csv`).
+
 ## 2026-10-27 — EXP-09 run 1: offline sessions; two bugs fixed (arrival for small objects, speech-model load)
 - **Run:** the user ran the 10 scenario sessions (5 objects × English/Hindi), `OFFLINE_MODE` on, Whisper large-v3 on CUDA. 10/10 targets heard correctly; 6/6 closed-set sessions ended `arrived` (5.8–31.3 s). The 4 watch/keys sessions had to be stopped with Q, although "directly in front of you" was spoken.
 - **Bug 1 (affects results):** diagnosed with a per-frame probe. The watch box peaks at 4.1 % and the keys box at 11.2 % of the frame, never 22 %, and the arrival message was spoken on one unconfirmed frame. Fixed: the arrival message is spoken only once confirmed, and the arrival area is set per target (watch 3 %, keys 9 %); decision D-20 (amends D-07).
