@@ -4,6 +4,14 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-27 — EXP-08 run 1: offline Hindi + English speech recognition (3 speakers)
+- **What:** the user recorded 120 clips: speakers S01–S03, the 20 prompts in English and in Hindi, quiet room, laptop microphone (`module1_audio/evaluation/multilingual/recordings.csv`). Ran `evaluation/multilingual_benchmark.py` offline (`OFFLINE_MODE=true`, RTX 3050) with Whisper tiny, base and large-v3, each with auto language detection and with the language given (`+hint`).
+- **Results (object accuracy EN / HI, median latency):** tiny 76.7 % / 33.3 %, 0.10 s; base 83.3 % / 55.0 %, 0.15 s; large-v3 91.7 % / 90.0 %, 0.92 s (max 2.22 s); large-v3+hint 90.0 % / 90.0 %, 0.55 s (max 1.73 s). The hint doesn't change accuracy, but it makes large-v3 ~40 % faster. All 11 large-v3 errors are misheard object words (cup, bowl, Hindi "chhata" → "Tata"/"data"), not parser failures.
+- **Decision:** D-15 provisionally large-v3 + language hint (already the default model size). Not final until `small`/`medium` and Sarvam have been compared. Claim C20 added (indicative).
+- **Tooling issue:** running all six backends in one process crashed silently during large-v3 (no files written). Run alone it completes, so each backend now runs in its own process. Likely a CTranslate2 model-swap crash (not verified). No results affected.
+- **Pending:** Whisper `small`/`medium` (download, needs approval), Sarvam baseline (free credit, needs approval), noisy-condition clips.
+- **Links:** `experiments/2026-10-23_multilingual_offline_asr/` (run 1 and `run_2026-10-27/`), `decisions.md` D-15, `paper_notes/claims_and_limitations.md` C20.
+
 ## 2026-10-25 — Scope for the paper: Hindi and English; Sarvam within free credit (D-18)
 - **Why:** the user has made the paper the priority over finishing the product. The only languages the user and available speakers can record are Hindi and English, and the project has no budget for paid API calls.
 - **What:** EXP-08 is limited to Hindi and English (≥ 2 speakers each); other languages become a stated limitation (claims file, limitation 10). The Sarvam baseline runs only within the account's free credit. No code changed.

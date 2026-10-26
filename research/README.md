@@ -36,7 +36,7 @@ Everything the paper needs lives here: what was done (`LOG.md`), why (`decisions
 | `experiments/2026-10-20_desk_detection_trials/` | EXP-05 threshold/smoothing trials, fine-tuned vs stock |
 | `experiments/2026-10-23_open_vocab_comparison/` | EXP-06 open-vocabulary detectors (R3): speed, vocabulary, desk accuracy (watch / keys / slippers); YOLOE-26s text prompt chosen |
 | `experiments/2026-10-23_prompt_wording/` | EXP-07 prompt words for watch and keys: "watch" best; "bunch of keys" finds keys on a table (0 → 99.7 %); held in hand fails for both |
-| `experiments/2026-10-23_multilingual_offline_asr/` | EXP-08 offline multilingual speech recognition (R9): protocol, tooling, English smoke test; multilingual run pending |
+| `experiments/2026-10-23_multilingual_offline_asr/` | EXP-08 offline multilingual speech recognition (R9): protocol, tooling, English smoke test; run 1 (2026-10-27): Hindi + English, 3 speakers, Whisper tiny/base/large-v3 |
 | `experiments/2026-10-23_edge_feasibility/` | EXP-10 CPU-only speed of detectors and small Whisper models (partial) |
 | `results/MANIFEST.md` | figure/table → script, inputs, caveats |
 | `results/tables/` | tables 01–08 (Markdown) |

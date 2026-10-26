@@ -18,7 +18,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-12 | One environment (root `.venv`) and one repository layout | 2026-10-21 | Active |
 | D-13 | Open-vocabulary fallback: YOLOE-26s text prompt, alongside the closed-set model | 2026-10-23 | Active |
 | D-14 | Prompt map: "keys"/"key" → model prompt `bunch of keys` | 2026-10-23 | Active (approved by the user 2026-10-23) |
-| D-15 | On-device speech recognition (faster-whisper, translate) replaces Sarvam; Sarvam opt-in and paper baseline | 2026-10-23 | Active; model size pending EXP-08 |
+| D-15 | On-device speech recognition (faster-whisper, translate) replaces Sarvam; Sarvam opt-in and paper baseline | 2026-10-23 | Active; model size provisionally large-v3 + language hint (EXP-08 run 1, 2026-10-27) |
 | D-16 | Fully offline by default (project USP); laptop prototype for the paper, phone/glasses later | 2026-10-23 | Active (user direction) |
 | D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table is a draft pending native review |
 | D-18 | Paper scope: evaluate Hindi and English only; Sarvam baseline only within its free credit | 2026-10-25 | Active (user direction) |
@@ -110,6 +110,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
   - SeamlessM4T / MMS: CC-BY-NC, which blocks the final product.
 - **Still open:** the model size and whether Indic languages are routed to AI4Bharat IndicConformer + IndicTrans2 (MIT). EXP-08 decides, by object accuracy per language with ≤ 2 s latency (`experiments/2026-10-23_multilingual_offline_asr/`).
 - **Evidence so far:** English smoke test only, 10/10 objects with tiny/base on the GPU at ~0.1 s (EXP-08 smoke). No multilingual evidence yet.
+- **Update 2026-10-27 (EXP-08 run 1, 120 Hindi + English clips, 3 speakers):** large-v3 90 % object accuracy in Hindi and 90.0–91.7 % in English; tiny/base only 33 %/55 % in Hindi. With the language given, large-v3 has a median of 0.55 s and a maximum of 1.73 s, which is within the 2 s rule. Provisional choice: large-v3 (already the `ASR_MODEL_SIZE` default) with `ASR_LANGUAGE` set by the user. Still open: `small`/`medium`, the Sarvam reference, and noisy conditions.
 
 ### D-16 · Offline by default; laptop prototype for the paper
 - **Decision (2026-10-23, user direction):**
