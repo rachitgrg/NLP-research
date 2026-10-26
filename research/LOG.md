@@ -4,6 +4,14 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-27 — EXP-08 run 1 completed: Whisper small/medium and the Sarvam baseline; D-15 model size decided
+- **What:** with user approval, downloaded Whisper `small` (464 MB) and `medium` (1.5 GB) and ran them offline, with and without the language hint, on the same 120 clips. Ran the Sarvam cloud baseline on the free credit (120 calls).
+- **Results (object accuracy EN / HI, median latency):** small 88.3 % / 81.7 %, 0.27 s (hint 0.17 s); medium 86.7 % / 90.0 %, 0.56 s (hint 0.35 s); Sarvam 95.0 % / 96.7 %, 0.47 s (cloud, includes network). Paired against Sarvam, large-v3+hint: 7 clips Sarvam-only, 0 Whisper-only (exact McNemar p = 0.016, 0.10 after Bonferroni ×6).
+- **Decision:** D-15 model size decided: large-v3 + language hint (best within 2 s in English; ties with medium in Hindi). medium+hint is the smaller-device fallback. Claims C20 updated and C21 (gap to cloud) added.
+- **Caveat:** the Sarvam run's JSON says `offline_mode: true`, which is only the environment flag; that backend always uses the network.
+- **Pending:** noisy-condition recordings (user).
+- **Links:** `experiments/2026-10-23_multilingual_offline_asr/` (run 1, `run_2026-10-27/`), `decisions.md` D-15, `paper_notes/claims_and_limitations.md` C20–C21.
+
 ## 2026-10-27 — EXP-08 run 1: offline Hindi + English speech recognition (3 speakers)
 - **What:** the user recorded 120 clips: speakers S01–S03, the 20 prompts in English and in Hindi, quiet room, laptop microphone (`module1_audio/evaluation/multilingual/recordings.csv`). Ran `evaluation/multilingual_benchmark.py` offline (`OFFLINE_MODE=true`, RTX 3050) with Whisper tiny, base and large-v3, each with auto language detection and with the language given (`+hint`).
 - **Results (object accuracy EN / HI, median latency):** tiny 76.7 % / 33.3 %, 0.10 s; base 83.3 % / 55.0 %, 0.15 s; large-v3 91.7 % / 90.0 %, 0.92 s (max 2.22 s); large-v3+hint 90.0 % / 90.0 %, 0.55 s (max 1.73 s). The hint doesn't change accuracy, but it makes large-v3 ~40 % faster. All 11 large-v3 errors are misheard object words (cup, bowl, Hindi "chhata" → "Tata"/"data"), not parser failures.

@@ -1,6 +1,6 @@
 # EXP-08 · Offline multilingual speech recognition (roadmap R9)
 
-**Status (2026-10-27): first Hindi + English run done (120 clips, 3 speakers, quiet room, Whisper tiny/base/large-v3 offline).** Still to come: Whisper `small`/`medium` (not downloaded), the Sarvam baseline (free credit), and noisy-condition clips. Cite only the run below and its caveats.
+**Status (2026-10-27): run 1 complete for the quiet condition: 120 Hindi + English clips, 3 speakers, every Whisper size (tiny → large-v3) offline plus the Sarvam cloud baseline.** Still to come: noisy-condition clips. Optional: AI4Bharat IndicConformer. Cite only run 1 and its caveats.
 
 | | |
 |---|---|
@@ -33,6 +33,13 @@
 | `whisper:base+hint` | 83.3 % | 55.0 % | 69.2 % | (given) | 0.11 s | — |
 | `whisper:large-v3` | **91.7 %** | **90.0 %** | **90.8 %** | 60.0 % | 0.92 s | 2.22 s |
 | `whisper:large-v3+hint` | 90.0 % | **90.0 %** | 90.0 % | (given) | **0.55 s** | 1.73 s |
+| `whisper:small` | 88.3 % | 81.7 % | 85.0 % | 88.3 % | 0.27 s | 0.81 s |
+| `whisper:small+hint` | 88.3 % | 81.7 % | 85.0 % | (given) | 0.17 s | 0.64 s |
+| `whisper:medium` | 86.7 % | **90.0 %** | 88.3 % | 83.3 % | 0.56 s | 0.84 s |
+| `whisper:medium+hint` | 86.7 % | **90.0 %** | 88.3 % | (given) | 0.35 s | 1.40 s |
+| `sarvam` (cloud, Saaras v3) | 95.0 % | 96.7 % | 95.8 % | 100 % | 0.47 s | 0.92 s |
+
+small/medium were downloaded on 2026-10-27 with user approval (`Systran/faster-whisper-small` snapshot `536b0662`, 464 MB; `-medium` snapshot `08e178d4`, 1.5 GB) and run offline. Sarvam ran on the free credit (120 calls, ~10 min of audio) at commit `1acbd66`. Its latency includes the network round trip from the laptop. Its JSON records `offline_mode: true`, which is misleading: that is the environment flag, and the Sarvam backend always uses the network. Files: small `004050`, small+hint `004131`, medium `004200`, medium+hint `004315`, sarvam `004427`.
 
 Per speaker, large-v3 (correct out of 20): EN S01 19, S02 18, S03 18; HI S01 20, S02 18, S03 16. Large-v3 load time 7–8.5 s per model (once per process).
 
@@ -44,12 +51,14 @@ Per speaker, large-v3 (correct out of 20): EN S01 19, S02 18, S03 18; HI S01 20,
 - +hint adds one English error ("black button" for "black bottle", S03) and otherwise makes the same errors.
 
 **What it shows:**
-- Only large-v3 is usable for Hindi offline: 90 % object accuracy against 55 % (base) and 33 % (tiny). In English the small models do better (77–83 %) but still lose to large-v3.
+- Hindi needs at least `medium`: large-v3 and medium reach 90 %, small 81.7 %, base 55 %, tiny 33 %. English is easier for the small models (77–88 %), but large-v3 is still best.
 - Giving the language doesn't change object accuracy here (identical for tiny and base; ±1 clip for large-v3), but it makes large-v3 ~40 % faster (median 0.92 → 0.55 s; max 2.22 → 1.73 s). Without the hint, large-v3 labels 40 % of the Hindi clips as another language (mostly code-mixed Hindi labelled English) and still translates most of them correctly.
 - large-v3+hint meets the decision rule (≤ 2 s per 5 s clip, max 1.73 s). large-v3 without the hint has one clip at 2.22 s.
-- Provisional choice for D-15: **large-v3 with the language given** (`ASR_LANGUAGE`). Not final until `small`/`medium` and Sarvam have been compared.
+- **Offline vs cloud:** Sarvam is ahead by 5–6 points (95.8 % vs 90.0–90.8 %). On the same clips, Sarvam is right on every clip large-v3+hint gets right, plus 7 more (paired exact McNemar p = 0.016; large-v3 auto 6 vs 0, p = 0.031; medium 9 vs 0, p = 0.004; small 14 vs 1, p = 0.001). The two share their hardest clips: cup/bowl in S02/S03 English and S03 Hindi.
+- **small and medium:** medium ties large-v3 in Hindi (90.0 %) and is 1.6× faster with the hint (0.35 s), but it is worse in English (86.7 %); small loses 8 points in Hindi. Without the hint, medium's English errors include mishearings such as "ballot" and "sleepers".
+- **Decision (D-15, by the protocol's rule):** English: large-v3+hint 90.0 % is the best within ≤ 2 s (large-v3 auto, 91.7 %, has a 2.22 s clip). Hindi: large-v3 and medium tie at 90.0 %. So **large-v3 with the language given** for both. medium+hint (1.5 GB instead of 3.1 GB) is the fallback for smaller devices: 90 % in Hindi, 86.7 % in English.
 
-**Caveats:** 3 speakers (the developer and two others), one room, quiet only, one microphone, one take per prompt; 60 clips per language gives roughly ±8 percentage points (95 % interval) at 90 %. No significance test. Speakers chose their own Hindi wording. The gold object is checked after `normalize_target`, so synonyms such as *spectacles → glasses* count as correct.
+**Caveats:** the McNemar p-values are uncorrected for six comparisons. With Bonferroni ×6, only medium (0.024) and small (0.006) stay below 0.05; large-v3 (0.19) and large-v3+hint (0.10) do not. Read the gap to Sarvam as consistent in direction (0 clips where Whisper large-v3 wins) but not yet significant after correction. 3 speakers (the developer and two others), one room, quiet only, one microphone, one take per prompt; 60 clips per language gives roughly ±8 percentage points (95 % interval) at 90 %. No significance test. Speakers chose their own Hindi wording. The gold object is checked after `normalize_target`, so synonyms such as *spectacles → glasses* count as correct.
 
 **Crash (tooling):** the first attempt ran all six backends in one process. It exited with no error message during large-v3 (after tiny and base had been loaded and released) and wrote no files. Run alone, large-v3 completed (exit 0). The script already releases each model (`del transcriber`), so a native crash in CTranslate2 when models are swapped on the GPU is likely (not verified). Workaround: one backend per run. No result is affected, because results are only written when a run completes.
 
