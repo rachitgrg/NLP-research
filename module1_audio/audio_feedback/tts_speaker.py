@@ -57,18 +57,46 @@ SAPI_LANGUAGE_IDS: dict[str, tuple[str, ...]] = {
 }
 
 
-def sapi_voices() -> list[tuple[str, tuple[str, ...]]]:
-    """Installed SAPI voices as (description, language IDs); [] off Windows."""
+# Voices added through Settings → Speech (e.g. Hindi Kalpana / Hemant) are
+# registered only as OneCore voices, which SpVoice.GetVoices() doesn't
+# list. SpVoice can still speak with them when given their tokens.
+_ONECORE_VOICES = r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices"
+
+
+def _onecore_tokens() -> list[Any]:
+    """OneCore voice tokens; [] off Windows or if the category is missing."""
     if sys.platform != "win32":
         return []
     try:
         import comtypes.client  # type: ignore
 
-        tokens = comtypes.client.CreateObject("SAPI.SpVoice").GetVoices()
-        return [
-            (t.GetDescription(), tuple(x.strip().lower() for x in t.GetAttribute("Language").split(";")))
-            for t in tokens
-        ]
+        category = comtypes.client.CreateObject("SAPI.SpObjectTokenCategory")
+        category.SetId(_ONECORE_VOICES, False)
+        tokens = category.EnumerateTokens()
+        return [tokens.Item(i) for i in range(tokens.Count)]
+    except Exception as exc:
+        logger.warning("Could not list OneCore voices: %s", exc)
+        return []
+
+
+def _voice_tokens(voice: Any) -> list[Any]:
+    """SAPI5 desktop voices first (unchanged default), then OneCore voices."""
+    return list(voice.GetVoices()) + _onecore_tokens()
+
+
+def _token_languages(token: Any) -> tuple[str, ...]:
+    return tuple(x.strip().lower() for x in token.GetAttribute("Language").split(";"))
+
+
+def sapi_voices() -> list[tuple[str, tuple[str, ...]]]:
+    """Installed SAPI and OneCore voices as (description, language IDs); [] off Windows."""
+    if sys.platform != "win32":
+        return []
+    try:
+        import comtypes.client  # type: ignore
+
+        tokens = _voice_tokens(comtypes.client.CreateObject("SAPI.SpVoice"))
+        return [(t.GetDescription(), _token_languages(t)) for t in tokens]
     except Exception as exc:
         logger.warning("Could not list SAPI voices: %s", exc)
         return []
@@ -104,9 +132,8 @@ class _SapiEngine:
     def _select_voice(self, language: str) -> None:
         """Use the first installed voice for ``language`` (default voice if none)."""
         wanted = set(SAPI_LANGUAGE_IDS.get(language, ()))
-        for token in self._voice.GetVoices():
-            ids = {x.strip().lower() for x in token.GetAttribute("Language").split(";")}
-            if ids & wanted:
+        for token in _voice_tokens(self._voice):
+            if set(_token_languages(token)) & wanted:
                 self._voice.Voice = token
                 return
         logger.warning("No SAPI voice for language %r; using the default voice.", language)

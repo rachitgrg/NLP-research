@@ -36,7 +36,7 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 - **General open-vocabulary accuracy.** Only watch, keys and slippers were measured, at one desk (C13). Don't claim the system finds "any object"; keys failed, and untested words (wallet, glasses, …) have unknown accuracy.
 - **Offline operation** (until EXP-09 passes). Since 2026-10-23 the code is offline by default (D-15, D-16), but a session with the network physically off hasn't been run yet. After it passes, cite C19.
 - **"First offline assistant".** On-device object detection already exists (e.g. Google Lookout describes on-device vision; several apps advertise offline detection). Claim only the measured combination: offline multilingual request + open-vocabulary target + guidance to arrival.
-- **Multilingual accuracy** beyond Hindi and English, or Hindi accuracy beyond C20's conditions (quiet room, 3 speakers). Don't claim parity with Sarvam: offline is 5–6 points lower (C21). Spoken Hindi replies aren't verified either: the phrases were reviewed by a native speaker (2026-10-27), but no Hindi voice is installed, so they haven't been heard (D-17).
+- **Multilingual accuracy** beyond Hindi and English, or Hindi accuracy beyond C20's conditions (quiet room, 3 speakers). Don't claim parity with Sarvam: offline is 5–6 points lower (C21). Spoken Hindi replies: the phrases were reviewed by a native speaker and a Windows Hindi voice speaks them (2026-10-27, D-17), but they haven't been evaluated with users.
 
 ## Limitations to state in the paper
 1. The ASR benchmark has n = 10, one speaker, English only, quiet room, and no significance testing.

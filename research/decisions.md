@@ -20,7 +20,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-14 | Prompt map: "keys"/"key" → model prompt `bunch of keys` | 2026-10-23 | Active (approved by the user 2026-10-23) |
 | D-15 | On-device speech recognition (faster-whisper, translate) replaces Sarvam; Sarvam opt-in and paper baseline | 2026-10-23 | Active; model size decided 2026-10-27: large-v3 + language hint (EXP-08 run 1) |
 | D-16 | Fully offline by default (project USP); laptop prototype for the paper, phone/glasses later | 2026-10-23 | Active (user direction) |
-| D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table reviewed 2026-10-27; no Hindi voice installed yet |
+| D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table reviewed and Hindi voice working 2026-10-27 |
 | D-18 | Paper scope: evaluate Hindi and English only; Sarvam baseline only within its free credit | 2026-10-25 | Active (user direction) |
 | D-19 | EXP-08 evaluated in a quiet room only; noisy condition dropped | 2026-10-27 | Active (user direction) |
 
@@ -131,7 +131,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 - **Why:** the guidance vocabulary is small and fixed (~15 templates), so reviewed tables are more reliable than MT and cost nothing at runtime.
 - **Open:**
   - The Hindi table must be checked by a native speaker. It is worded so no verb agrees with the object's gender.
-  - **Update 2026-10-27:** reviewed by a native Hindi speaker (the user); accepted unchanged. Still open: a Hindi voice, so Hindi replies haven't been heard yet.
+  - **Update 2026-10-27:** reviewed by a native Hindi speaker (the user); accepted unchanged. The Windows Hindi voices (Hemant, Kalpana) were installed the same day. They are OneCore-only voices, so the assistant also reads the OneCore voice list (`tts_speaker.py`); Hindi replies now use Hemant.
   - This machine has English voices only, so Hindi replies need a Windows Hindi voice (install approval).
   - Other languages need their own table and voice; until then they get English replies (a stated limitation).
 
