@@ -21,6 +21,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-15 | On-device speech recognition (faster-whisper, translate) replaces Sarvam; Sarvam opt-in and paper baseline | 2026-10-23 | Active; model size pending EXP-08 |
 | D-16 | Fully offline by default (project USP); laptop prototype for the paper, phone/glasses later | 2026-10-23 | Active (user direction) |
 | D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table is a draft pending native review |
+| D-18 | Paper scope: evaluate Hindi and English only; Sarvam baseline only within its free credit | 2026-10-25 | Active (user direction) |
 
 ---
 
@@ -129,3 +130,10 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
   - The Hindi table must be checked by a native speaker. It is worded so no verb agrees with the object's gender.
   - This machine has English voices only, so Hindi replies need a Windows Hindi voice (install approval).
   - Other languages need their own table and voice; until then they get English replies (a stated limitation).
+
+### D-18 · Paper scope: Hindi and English; Sarvam within free credit
+- **Decision (2026-10-25, user direction):**
+  - The paper is the priority; the full product can follow later. Only work the paper's claims need is done now.
+  - EXP-08 records and evaluates **Hindi and English only** (code-mixed Hinglish counts as Hindi, as spoken naturally). The user and the available speakers don't speak other languages. This replaces the EXP-08 target of "≥ 4 languages".
+  - The Sarvam cloud baseline runs only while the account's free credit covers it; the project has no budget for paid calls.
+- **Consequence for the paper:** the system supports any language Whisper/Sarvam accept, but only Hindi and English are measured. Other Indian languages are a stated limitation and future work; don't claim accuracy for them.

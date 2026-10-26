@@ -15,9 +15,10 @@
 ## Protocol
 1. **Prompts:** 20 find-requests (`prompts.csv`). They cover all 15 closed-set targets/obstacles plus open-vocabulary objects (watch, keys, slippers, glasses, wallet, medicine, charger), one with a colour attribute, and two where the object isn't the last noun ("phone on the table", "cup near the laptop").
 2. **Speakers say each request naturally in their own language.** English loanwords such as "phone" are fine, and code-mixing is expected. The Hindi column is only a suggestion.
-3. **Target set:** Hindi plus every language with an available native speaker (aim ≥ 4), ≥ 2 speakers per language, quiet and noisy conditions. Speakers are anonymous (S01, S02, …).
-4. **Recording:** `python evaluation/record_multilingual.py --language hi --speaker S01 [--condition noisy]`. Audio (5 s, 16 kHz mono) stays local (`*.wav` is gitignored); `multilingual/recordings.csv` is the manifest. Commit audio only with the speaker's consent.
-5. **Run:** `python evaluation/multilingual_benchmark.py --backends whisper:small whisper:medium whisper:large-v3 whisper:large-v3+hint [sarvam --allow-cloud]`. It writes dated `evaluation/runs/multilingual_<date_time>.csv`, `…_summary.csv` and `….json` (settings, versions, commit) and never overwrites.
+3. **Target set:** ~~Hindi plus every language with an available native speaker (aim ≥ 4)~~ **Hindi and English only (D-18, 2026-10-25)**, ≥ 2 speakers per language, quiet and noisy conditions. Sarvam baseline only within the free credit. Speakers are anonymous (S01, S02, …).
+4. **Microphone (2026-10-25):** every clip is recorded on the laptop's built-in microphone array (Realtek), the microphone the assistant itself uses, so speakers are comparable. Bluetooth headsets are not used: their call-mode microphone is narrow-band, and on 2026-10-25 a recording froze while one was the default input (the recorder now times out instead of hanging, `evaluation/record_samples.py`).
+5. **Recording:** `python evaluation/record_multilingual.py --language hi --speaker S01 [--condition noisy]`. Audio (5 s, 16 kHz mono) stays local (`*.wav` is gitignored); `multilingual/recordings.csv` is the manifest. Commit audio only with the speaker's consent.
+6. **Run:** `python evaluation/multilingual_benchmark.py --backends whisper:small whisper:medium whisper:large-v3 whisper:large-v3+hint [sarvam --allow-cloud]`. It writes dated `evaluation/runs/multilingual_<date_time>.csv`, `…_summary.csv` and `….json` (settings, versions, commit) and never overwrites.
 
 ## Smoke test (2026-10-23 04:57, commit `1d7bb32`; the script itself was committed unchanged in `154d4af`)
 The 10 EXP-02 English clips (`en_smoke_manifest.csv`, gold objects from `semantic_gold.csv`) with the two cached models, on the GPU (`int8_float16`, beam 5):

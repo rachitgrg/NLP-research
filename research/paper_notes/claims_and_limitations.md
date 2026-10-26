@@ -25,7 +25,7 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 | C17 | On-device Whisper (tiny/base, translate) extracted the correct object from all 10 English pilot utterances, at ~0.1 s per request on the RTX 3050 and 0.2–0.4 s on the laptop CPU | ✅ English pilot only (the EXP-02 clips, one speaker); says nothing about other languages | [V] `experiments/2026-10-23_multilingual_offline_asr/` (smoke), `experiments/2026-10-23_edge_feasibility/` |
 | C18 | Without a GPU (Ryzen 5 7640HS), the closed-set detector runs at 22.6 ms/frame and the open-vocabulary YOLOE-26s at 73.6 ms/frame at 640 px (29.2 ms at 320 px) | ✅ speed only, model-only, one image; 320 px accuracy not measured | [V] `experiments/2026-10-23_edge_feasibility/` |
 | C19 | The full assistant runs with no network connection | ⏳ not yet: library flags and file checks are in place and unit-tested, but no session has run with the network off (EXP-09) | [R]+[V] D-16 |
-| C20 | Multilingual offline recognition accuracy (object accuracy per language vs Sarvam) | ⏳ EXP-08 not run | — |
+| C20 | Offline recognition accuracy in Hindi and English (object accuracy per language vs Sarvam) | ⏳ EXP-08 not run; scope limited to Hindi + English (D-18) | — |
 
 ## Must NOT be claimed (current state)
 - **Audio-visual grounding / referring-expression comprehension.** The system detects fixed classes; attributes such as color and position are parsed but ignored (`decisions.md` D-08).
@@ -46,3 +46,4 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 7. Fine-tuning dropped 65 COCO classes, some of them relevant (remote, clock, keyboard, handbag).
 8. RefCOCO statistics in Stage-1 drafts double-count expressions (corrected 2026-10-21).
 9. Open-vocabulary fallback: objects held in the hand were not detected with any prompt; keys needed the prompt "bunch of keys" (EXP-07); a watch lying flat is seen only at low confidence (~0.12); evidence comes from one desk with one object of each kind (EXP-06, EXP-07).
+10. Multilingual evaluation covers Hindi and English only (D-18). Other Indian languages are supported by the recognisers but untested; the speakers available to the project don't speak them.

@@ -94,3 +94,38 @@ def test_append_manifest_replaces_rerecorded_clip(tmp_path):
     with open(manifest, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     assert len(rows) == 1 and rows[0]["english"] == "again"
+
+
+class _FakeStream:
+    def __init__(self, active):
+        self.active = active
+
+
+def test_record_audio_gives_up_when_microphone_hangs(tmp_path, monkeypatch):
+    import numpy as np
+    from evaluation import record_samples
+
+    stopped = []
+    monkeypatch.setattr(record_samples.time, "sleep", lambda s: None)
+    monkeypatch.setattr(record_samples.sd, "rec", lambda *a, **k: np.ones((10, 1), "float32"))
+    monkeypatch.setattr(record_samples.sd, "get_stream", lambda: _FakeStream(active=True))
+    monkeypatch.setattr(record_samples.sd, "stop", lambda **k: stopped.append(k))
+    clock = iter(range(0, 1000, 5))
+    monkeypatch.setattr(record_samples.time, "monotonic", lambda: next(clock))
+
+    out = tmp_path / "clip.wav"
+    assert record_samples.record_audio(str(out), duration=1) is False
+    assert stopped and not out.exists()
+
+
+def test_record_audio_saves_finished_recording(tmp_path, monkeypatch):
+    import numpy as np
+    from evaluation import record_samples
+
+    monkeypatch.setattr(record_samples.time, "sleep", lambda s: None)
+    monkeypatch.setattr(record_samples.sd, "rec", lambda *a, **k: np.full((1600, 1), 0.1, "float32"))
+    monkeypatch.setattr(record_samples.sd, "get_stream", lambda: _FakeStream(active=False))
+
+    out = tmp_path / "clip.wav"
+    assert record_samples.record_audio(str(out), duration=1) is True
+    assert out.exists()

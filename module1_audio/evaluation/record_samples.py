@@ -18,6 +18,15 @@ SENTENCES = [
     "Where is the laptop?"
 ]
 
+def wait_for_recording(timeout):
+    """Wait for the current sd.rec() to finish; False if it is still running after timeout s."""
+    deadline = time.monotonic() + timeout
+    while sd.get_stream().active:
+        if time.monotonic() > deadline:
+            return False
+        time.sleep(0.05)
+    return True
+
 def record_audio(filename, duration=5, samplerate=16000):
     print("3...")
     time.sleep(1)
@@ -27,10 +36,15 @@ def record_audio(filename, duration=5, samplerate=16000):
     time.sleep(1)
     print("SPEAK!")
     
-    # Record audio
+    # Record audio. sd.wait() can block forever on Windows when the
+    # microphone stops delivering audio, so wait with a deadline instead.
     recording = sd.rec(int(duration * samplerate), samplerate=samplerate, channels=1, dtype='float32')
-    sd.wait()
-    
+    if not wait_for_recording(timeout=duration + 3):
+        sd.stop(ignore_errors=True)
+        print("\nThe microphone stopped responding. Check that no other app is using it, "
+              "then press ENTER to try again.\n")
+        return False
+
     # Calculate RMS (energy) to check for silence
     rms = np.sqrt(np.mean(recording**2))
     

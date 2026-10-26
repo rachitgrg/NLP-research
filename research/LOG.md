@@ -4,6 +4,13 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-25 — Scope for the paper: Hindi and English; Sarvam within free credit (D-18)
+- **Why:** the user has made the paper the priority over finishing the product. The only languages the user and available speakers can record are Hindi and English, and the project has no budget for paid API calls.
+- **What:** EXP-08 is limited to Hindi and English (≥ 2 speakers each); other languages become a stated limitation (claims file, limitation 10). The Sarvam baseline runs only within the account's free credit. No code changed.
+- **Environment:** downloaded Whisper large-v3 (`Systran/faster-whisper-large-v3`, snapshot `edaa852e`, 3,091 MB, HF cache) with user approval; `tools/offline_check.py` now reports "Ready to run offline". Offline check (`OFFLINE_MODE=true`, RTX 3050, int8_float16): load 11.5 s; EXP-02 clips 01 and 08 transcribed correctly in 1.55 s (first call) and 0.94 s. A check only, not a result.
+- **Recorder fix:** an EXP-08 recording froze in `sd.wait()` with Bluetooth earbuds as the default input; clips 1–7 were saved, clip 8 wasn't. `evaluation/record_samples.py` now times out after duration + 3 s and asks for a retry (2 tests; 123 voice tests pass). EXP-08 clips are recorded on the laptop's built-in microphone only. No results affected.
+- **Links:** `decisions.md` D-18, `experiments/2026-10-23_multilingual_offline_asr/README.md`, `paper_notes/claims_and_limitations.md` C20.
+
 ## 2026-10-23 — R9 started: fully offline, multilingual assistant (branch `feature/offline-multilingual`)
 - **Why:** new project direction (user, 2026-10-23). Offline, on-device operation is the USP compared with cloud assistants such as Gemini. The paper uses the laptop prototype; a phone/glasses product comes later without a rewrite now. The system must stay multilingual. Work happens on a branch so `main` stays demo-ready.
 - **What (code, commits `1d7bb32`, `154d4af`, `8bccb95`, `b1969dc`):**
