@@ -1,0 +1,11 @@
+scenario,said,heard_target,target_correct,reply_language_ok,guidance_ok,finish,network_off_checked,notes
+E1_bottle,,,,,,,,
+E2_phone,,,,,,,,
+E3_cup,,,,,,,,
+E4_watch,,,,,,,,
+E5_keys,,,,,,,,
+H1_bottle,,,,,,,,
+H2_phone,,,,,,,,
+H3_cup,,,,,,,,
+H4_watch,,,,,,,,
+H5_keys,,,,,,,,

@@ -4,6 +4,11 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-27 — EXP-09 scenario sheet prepared
+- **What:** protocol for the offline end-to-end sessions (claim C19): pre-flight online and offline, Airplane mode with a connectivity check, 5 objects (bottle, phone, cup = closed set; worn watch, keys on the desk = open vocabulary) × English and Hindi, one attempt each, `--no-obstacles` at the desk. Timings are logged automatically; `observations.csv` is the manual record.
+- **Status:** not run; needs the user at the laptop.
+- **Links:** `experiments/2026-10-27_offline_end_to_end/`.
+
 ## 2026-10-27 — Noisy condition dropped (D-19); Hindi phrases reviewed; EXP-10 Whisper on CPU
 - **Scope (D-19, user direction):** EXP-08 is quiet-room only; the noisy recordings are dropped. Limitation 11 added.
 - **Hindi replies (D-17):** the user (native Hindi speaker) reviewed `module2_vision/guidance/phrases.py` and accepted it unchanged; the draft markers are removed (214 vision tests pass). The Windows Hindi voice download stalled at 0 % in Settings (connection not metered; Windows Update and BITS running). It installed from an administrator PowerShell instead: `Add-WindowsCapability -Online -Name "Language.TextToSpeech~~~hi-IN~0.0.1.0"`.

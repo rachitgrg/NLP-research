@@ -101,7 +101,7 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
   3. ~~Run EXP-08~~ Done 2026-10-27 (run 1, incl. Sarvam); D-15 decided: large-v3 + language hint.
   4. ~~Optional~~ Not pursued: Whisper large-v3/medium reach 90 % in Hindi. Optional, if Whisper is weak on Indic languages: IndicConformer-600M + IndicTrans2-200M behind the same interface (install approval; gated model).
   5. ~~Native-speaker review of the Hindi phrases~~ Done 2026-10-27 (accepted unchanged). ~~Install a Windows Hindi voice~~ Done 2026-10-27 (OneCore voices, read by `tts_speaker.py`). Add tables for further languages.
-  6. **EXP-09:** `offline_check.py`, then network off, then `assistant.py --scenario <name>`: 5 scenarios × ≥ 2 languages, laptop webcam and a forward-facing USB camera. Rows land in `tools/results/session_latency_<date>.csv`.
+  6. **EXP-09** (scenario sheet ready 2026-10-27: `experiments/2026-10-27_offline_end_to_end/`, 5 objects × Hindi/English): `offline_check.py`, then network off, then `assistant.py --scenario <name>`: 5 scenarios × ≥ 2 languages, laptop webcam and a forward-facing USB camera. Rows land in `tools/results/session_latency_<date>.csv`.
   7. **EXP-10 completion:** ~~large Whisper models on CPU~~ (done 2026-10-27: large-v3 7.5 s, small 1.2 s per request); optional ONNX/INT8 export (`onnx`/`onnxruntime` install approval).
 - **Acceptance:**
   - C19: a full session with the network off.
