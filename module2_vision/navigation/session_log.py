@@ -24,7 +24,7 @@ RESULTS_DIR = MODULE_ROOT / "tools" / "results"
 FIELDS = [
     "timestamp", "scenario", "target", "detection_mode", "spoken_language", "reply_language",
     "asr_backend", "asr_model", "device", "offline_mode", "camera_index",
-    "record_s", "asr_s", "model_load_s", "detector_setup_s",
+    "asr_load_s", "record_s", "asr_s", "model_load_s", "detector_setup_s",
     "first_sighting_s", "arrival_s", "finish_reason",
 ]
 
@@ -49,10 +49,26 @@ class StageTimer:
         return StageTimer._Stage(self, name)
 
 
+def results_file(results_dir: Path = RESULTS_DIR) -> Path:
+    """
+    Today's log with the current columns: the first of
+    ``session_latency_<date>.csv`` / ``…_<HHMMSS>.csv`` whose header equals
+    FIELDS, else a new timestamped file (never mixes columns).
+    """
+    base = results_dir / f"session_latency_{time.strftime('%Y-%m-%d')}.csv"
+    for candidate in [base, *sorted(results_dir.glob(f"{base.stem}_*.csv"))]:
+        if not candidate.exists():
+            return candidate
+        with candidate.open(newline="", encoding="utf-8") as fh:
+            if next(csv.reader(fh), None) == FIELDS:
+                return candidate
+    return base.with_name(f"{base.stem}_{time.strftime('%H%M%S')}.csv")
+
+
 def append_session_row(row: dict[str, Any], results_dir: Path = RESULTS_DIR) -> Path:
     """Append ``row`` (keys from FIELDS; missing ones left empty) to today's file."""
     results_dir.mkdir(parents=True, exist_ok=True)
-    path = results_dir / f"session_latency_{time.strftime('%Y-%m-%d')}.csv"
+    path = results_file(results_dir)
     new_file = not path.exists()
     with open(path, "a", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=FIELDS, extrasaction="ignore")

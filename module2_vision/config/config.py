@@ -162,6 +162,27 @@ PROXIMITY_FAR_THRESHOLD: float = float(os.environ.get("PROXIMITY_FAR_THRESHOLD",
 PROXIMITY_APPROACHING_THRESHOLD: float = float(os.environ.get("PROXIMITY_APPROACHING_THRESHOLD", "0.22"))
 ARRIVAL_AREA_THRESHOLD: float = float(os.environ.get("ARRIVAL_AREA_THRESHOLD", "0.22"))
 
+
+def _parse_float_map(spec: str) -> dict[str, float]:
+    """'watch=0.03;keys=0.09' → {'watch': 0.03, 'keys': 0.09} (bad items skipped)."""
+    result: dict[str, float] = {}
+    for item in spec.split(";"):
+        target, _, value = item.partition("=")
+        try:
+            result[target.strip().lower()] = float(value)
+        except ValueError:
+            continue
+    return {k: v for k, v in result.items() if k}
+
+
+# Arrival area per target, for objects whose box never gets near 22 % of the
+# frame. EXP-09 probe (2026-10-27): a worn watch peaked at 4.1 % and keys on
+# the desk at 11.2 % before the open-vocabulary model lost them (D-20).
+# Env format: "target=ratio;target2=ratio".
+ARRIVAL_AREA_BY_TARGET: dict[str, float] = _parse_float_map(
+    os.environ.get("ARRIVAL_AREA_BY_TARGET", "watch=0.03;keys=0.09;key=0.09")
+)
+
 # ── Target detection reliability ──────────────────────────────
 # The requested object is accepted from this confidence; every other class
 # still needs CONFIDENCE_THRESHOLD (set equal to it to disable).

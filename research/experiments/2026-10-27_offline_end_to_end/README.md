@@ -1,6 +1,6 @@
 # EXP-09 · Offline end-to-end sessions (roadmap R9, claim C19)
 
-**Status (2026-10-27): protocol ready, not run yet.** This file is the scenario sheet to follow at the desk. Results go in the *Results* section once the sessions have run.
+**Status (2026-10-27): run 1 done (10 sessions, 01:55–02:08).** Two bugs were found and fixed afterwards (see *Results*); the watch/keys sessions need a re-run with the fix. The manual observation form isn't filled in yet, and the tester still has to confirm the network-off check for each session.
 
 | | |
 |---|---|
@@ -85,7 +85,39 @@ Why these five: bottle, phone and cup are in the fine-tuned 15-class model (clos
 2. Tell Claude the sessions are done. The timings CSV (`module2_vision/tools/results/session_latency_<date>.csv`) and `observations.csv` are then frozen into this folder and written up (C19, LOG, claims).
 
 ## Results
-_Not run yet._
+
+### Run 1 (2026-10-27, commit `d715c73`, before the fixes)
+Files: `session_latency_2026-10-27.csv` (copied from `module2_vision/tools/results/`), `observations.csv` (not filled in yet). Whisper large-v3 on CUDA, `OFFLINE_MODE=True` in every row, laptop webcam, `--no-obstacles`. Tester's summary (verbal): "overall it was pretty good", apart from the watch/keys ending (below).
+
+| Session | Heard target | Detection | Finish | First sighting | Arrival | ASR stage* |
+|---|---|---|---|---|---|---|
+| E1 bottle | bottle | closed-set | arrived | 0.06 s | 15.7 s | 9.8 s |
+| E2 phone | cell phone | closed-set | arrived | 10.6 s | 19.8 s | 9.7 s |
+| E3 cup | cup | closed-set | arrived | 0.21 s | 5.8 s | 8.9 s |
+| E4 watch | watch | open-vocab | **stopped (Q)** | 0.07 s | — | 7.8 s |
+| E5 keys | keys | open-vocab | **stopped (Q)** | 0.07 s | — | 8.2 s |
+| H1 bottle | bottle | closed-set | arrived | 0.12 s | 31.3 s | 9.0 s |
+| H2 phone | cell phone | closed-set | arrived | 0.06 s | 12.1 s | 8.3 s |
+| H3 cup | cup | closed-set | arrived | 0.06 s | 9.7 s | 8.2 s |
+| H4 watch | watch | open-vocab | **stopped (Q)** | 0.07 s | — | 8.1 s |
+| H5 keys | key | open-vocab | **stopped (Q)** | 0.08 s | — | 8.1 s |
+
+\* The ASR stage includes loading Whisper large-v3 (~7–8 s, once per process), so recognition itself was ~0.5–1 s (EXP-08). Other stages: recording 5.24–5.26 s, detector load 2.41–2.63 s, open-vocabulary setup 0.68–0.71 s. "Arrival" counts from the start of the camera loop.
+
+**What it shows:** all 10 voice requests were heard as the right object (10/10, both languages), with replies in the spoken language. All six closed-set sessions ran to `arrived` (5.8–31.3 s).
+
+**Bug 1, watch/keys never end (all four open-vocabulary sessions):** the tester heard "directly in front of you", but the session went on until Q. Diagnosed with `arrival_probe/arrival_probe.py`: per-frame state on the webcam, silent speaker, 25 s per object, the object brought slowly towards the camera (`probe_watch.csv`, `probe_keys.csv`):
+
+| Probe | Frames | Target found (smoothed) | Box area median / p90 / max | Longest "lost" gap |
+|---|---|---|---|---|
+| watch (worn) | 645 | 578 (90 %) | 2.6 % / 3.4 % / 4.1 % | 62 frames (~3 s) |
+| keys (desk) | 651 | 517 (79 %) | 7.0 % / 9.9 % / 11.2 % | 88 frames (~4 s) |
+
+"Reached" required a box of ≥ 22 % of the frame for 5 frames in a row (D-07). Small objects never get there: when brought closer, the open-vocabulary model loses them instead (the "lost" gaps came at the closest point). The arrival message, however, was spoken on the *first* reached frame, so a single stray large box produced "directly in front of you" without ending the session. **Fix (D-20):** (a) the arrival message is spoken only once arrival is confirmed, so message and end always coincide; (b) per-target arrival area `ARRIVAL_AREA_BY_TARGET` = watch 3 %, keys 9 % (the default stays 22 %). Both values lie between the probe's median and maximum, so arrival needs the object closer than its usual position. Each was tuned on a single probe.
+
+**Bug 2, ASR stage 8–10 s:** the Whisper model was loaded after the user spoke, so the first reply waited ~8 s. **Fix:** `assistant.py` loads the speech model before asking ("Loading speech model..."), and the log has a separate `asr_load_s` column. A log file with the old columns is never appended to; a new timestamped file is started instead.
+
+**Still to do:** re-run E4, E5, H4, H5 with the fix (`--scenario E4_watch_fix` etc.); fill in `observations.csv`; confirm the network-off check for run 1.
 
 ## Caveats (known in advance)
 - One tester, one desk, the laptop webcam facing the user; 5 scenarios per language, one attempt each. This shows that the system *runs* offline, not how accurate it is.

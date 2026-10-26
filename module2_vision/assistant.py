@@ -74,17 +74,27 @@ def _get_target_from_speech(
 ) -> tuple[str | None, str | None]:
     """Prompt user and extract (target object, spoken language) using Module 1."""
     timer = timer or StageTimer()
-    speaker.speak(phrase("ask_target", speaker.language), priority=SpeechPriority.EMERGENCY, force=True)
-    time.sleep(1.8)
-
     try:
-        from pipeline.m3_pipeline import run_voice_pipeline
+        from pipeline.m3_pipeline import load_voice_pipeline, run_voice_pipeline
         from audio.microphone import record_audio, delete_temp_audio  # type: ignore
     except ImportError as exc:
         msg = "Voice module not available. Please type the target object."
         speaker.speak(msg)
         print(f"\n[INFO] {msg} ({exc})")
         return None, None
+
+    # Load the speech model before asking, so the reply after the request
+    # isn't delayed by it (Whisper large-v3 takes ~8 s to load).
+    print("\nLoading speech model...")
+    try:
+        with timer.stage("asr_load_s"):
+            load_voice_pipeline()
+    except Exception as exc:
+        print(f"[ERROR] Speech model failed to load: {exc}")
+        return None, None
+
+    speaker.speak(phrase("ask_target", speaker.language), priority=SpeechPriority.EMERGENCY, force=True)
+    time.sleep(1.8)
 
     audio_path = None
     try:
@@ -96,7 +106,7 @@ def _get_target_from_speech(
         return None, None
 
     try:
-        # Includes the speech-model load on the first request of a process.
+        # Recognition only: the model was loaded above (asr_load_s).
         with timer.stage("asr_s"):
             target_info = run_voice_pipeline(audio_path)
     except Exception as exc:
@@ -218,7 +228,7 @@ def run_assistant(
     nav_controller = NavigationController(
         target_name=normalized,
         matcher=TargetMatcher(supported_classes=detector.class_names),
-        locator=SpatialLocator(),
+        locator=SpatialLocator.for_target(normalized),
         obstacle_detector=(ObstacleDetector(language=reply_language) if obstacles
                            else ObstacleDetector(enabled=False, language=reply_language)),
         speaker=speaker,

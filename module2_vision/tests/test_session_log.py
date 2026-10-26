@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import csv
+import time
 
 import assistant
 from navigation.navigation_controller import NavigationController
@@ -30,6 +31,41 @@ def test_append_session_row_writes_header_once(tmp_path):
         rows = list(csv.DictReader(f))
     assert [r["target"] for r in rows] == ["bottle", "watch"]
     assert list(rows[0]) == FIELDS
+
+
+def test_append_session_row_starts_new_file_when_columns_change(tmp_path):
+    # A file written before a column was added must not get misaligned rows.
+    old = tmp_path / f"session_latency_{time.strftime('%Y-%m-%d')}.csv"
+    old.write_text("timestamp,scenario,target\n2026-10-27 01:00:00,E1,bottle\n", encoding="utf-8")
+    path = append_session_row({"target": "watch", "asr_load_s": 7.9}, tmp_path)
+    assert path != old
+    assert old.read_text(encoding="utf-8").count("\n") == 2                # untouched
+    with open(path, encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    assert rows[0]["asr_load_s"] == "7.9" and list(rows[0]) == FIELDS
+    assert append_session_row({"target": "keys"}, tmp_path) == path         # reused afterwards
+
+
+def test_voice_request_loads_speech_model_before_asking(monkeypatch):
+    events = []
+    import pipeline.m3_pipeline as m3
+    import audio.microphone as mic
+    monkeypatch.setattr(m3, "load_voice_pipeline", lambda: events.append("load"))
+    monkeypatch.setattr(m3, "run_voice_pipeline",
+                        lambda path: events.append("asr") or {"target": "bottle", "language": "en"})
+    monkeypatch.setattr(mic, "record_audio", lambda duration: events.append("record") or "x.wav")
+    monkeypatch.setattr(mic, "delete_temp_audio", lambda path: None)
+    monkeypatch.setattr(assistant.time, "sleep", lambda s: None)
+
+    class Speaker(_Speaker):
+        def speak(self, text, priority=None, force=False):
+            events.append("ask")
+            return True
+
+    timer = StageTimer()
+    assert assistant._get_target_from_speech(5, Speaker(), timer) == ("bottle", "en")
+    assert events == ["load", "ask", "record", "asr"]
+    assert {"asr_load_s", "record_s", "asr_s"} <= set(timer.values)
 
 
 class _Speaker:

@@ -16,6 +16,7 @@ from enum import Enum
 from typing import Any
 
 from config.config import (
+    ARRIVAL_AREA_BY_TARGET,
     ARRIVAL_AREA_THRESHOLD,
     PROXIMITY_APPROACHING_THRESHOLD,
     PROXIMITY_FAR_THRESHOLD,
@@ -99,6 +100,13 @@ class SpatialLocator:
         self.far_right_th = far_right_th
         self.far_area_th = far_area_th
         self.arrival_area_th = arrival_area_th
+
+    @classmethod
+    def for_target(cls, target: str) -> "SpatialLocator":
+        """Locator with the target's arrival area (ARRIVAL_AREA_BY_TARGET, D-20)."""
+        arrival = ARRIVAL_AREA_BY_TARGET.get((target or "").strip().lower(), ARRIVAL_AREA_THRESHOLD)
+        # "far" must stay below arrival so a small object can still be "approaching".
+        return cls(far_area_th=min(PROXIMITY_FAR_THRESHOLD, arrival / 2), arrival_area_th=arrival)
 
     def locate(
         self,

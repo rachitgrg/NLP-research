@@ -4,6 +4,14 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-27 — EXP-09 run 1: offline sessions; two bugs fixed (arrival for small objects, speech-model load)
+- **Run:** the user ran the 10 scenario sessions (5 objects × English/Hindi), `OFFLINE_MODE` on, Whisper large-v3 on CUDA. 10/10 targets heard correctly; 6/6 closed-set sessions ended `arrived` (5.8–31.3 s). The 4 watch/keys sessions had to be stopped with Q, although "directly in front of you" was spoken.
+- **Bug 1 (affects results):** diagnosed with a per-frame probe. The watch box peaks at 4.1 % and the keys box at 11.2 % of the frame, never 22 %, and the arrival message was spoken on one unconfirmed frame. Fixed: the arrival message is spoken only once confirmed, and the arrival area is set per target (watch 3 %, keys 9 %); decision D-20 (amends D-07).
+- **Bug 2:** the logged ASR stage (8–10 s) included the ~8 s Whisper load after the user spoke. Fixed: the model is loaded before the prompt; new `asr_load_s` column; a log file with the old columns gets a new file instead.
+- **Tests:** module2 214 → 220 (6 new, 2 updated for the confirmed-arrival rule), module1 126; all pass.
+- **Pending:** re-run the watch/keys sessions with the fix; `observations.csv`; network-off confirmation (C19).
+- **Links:** `experiments/2026-10-27_offline_end_to_end/` (`session_latency_2026-10-27.csv`, `arrival_probe/`), `decisions.md` D-20.
+
 ## 2026-10-27 — EXP-09 scenario sheet prepared
 - **What:** protocol for the offline end-to-end sessions (claim C19): pre-flight online and offline, Airplane mode with a connectivity check, 5 objects (bottle, phone, cup = closed set; worn watch, keys on the desk = open vocabulary) × English and Hindi, one attempt each, `--no-obstacles` at the desk. Timings are logged automatically; `observations.csv` is the manual record.
 - **Status:** not run; needs the user at the laptop.

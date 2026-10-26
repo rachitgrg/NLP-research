@@ -152,6 +152,11 @@ def _get_pipeline() -> Any:
 
 # ── Public API ─────────────────────────────────────────────────
 
+def load_voice_pipeline() -> None:
+    """Load the speech model now, so the first request doesn't wait for it."""
+    _get_pipeline()
+
+
 def extract_target_from_module1(m1_result: dict[str, Any]) -> dict[str, Any]:
     """
     Convert a Module 1 result dict into the target descriptor used by M3.

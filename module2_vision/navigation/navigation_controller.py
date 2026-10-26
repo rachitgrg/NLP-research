@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import logging
 import time
+from dataclasses import replace
 from typing import Any, Optional
 
 from audio_feedback.tts_speaker import SpeechPriority, TTSSpeaker
@@ -55,7 +56,7 @@ class NavigationController:
         self.target_name = target_name.strip().lower()
 
         self.matcher = matcher or TargetMatcher()
-        self.locator = locator or SpatialLocator()
+        self.locator = locator or SpatialLocator.for_target(target_name)
         self.obstacle_detector = obstacle_detector or ObstacleDetector()
         self.speaker = speaker or TTSSpeaker(use_mock=True)
 
@@ -228,19 +229,26 @@ class NavigationController:
             spatial_loc = self.locator.locate(bbox, frame_width, frame_height)
 
             if spatial_loc.is_reached:
-                self.state = NavigationState.ARRIVED
-                self.has_arrived = True
                 self._arrival_streak += 1
-                instruction = phrase("target_reached", self.language, obj=self.target_name)
-                self.speaker.speak(instruction, priority=SpeechPriority.ARRIVAL)
-                if self._arrival_streak >= self.arrival_confirm_frames:
-                    self.finish_reason = "arrived"
-                    if self.arrived_time is None:
-                        self.arrived_time = now
             else:
                 self._arrival_streak = 0
+
+            if spatial_loc.is_reached and self._arrival_streak >= self.arrival_confirm_frames:
+                # Announce arrival only once it is confirmed, so the message
+                # and the end of the session always coincide (EXP-09).
+                self.state = NavigationState.ARRIVED
+                self.has_arrived = True
+                instruction = phrase("target_reached", self.language, obj=self.target_name)
+                self.speaker.speak(instruction, priority=SpeechPriority.ARRIVAL)
+                self.finish_reason = "arrived"
+                if self.arrived_time is None:
+                    self.arrived_time = now
+            else:
+                # Not (yet) confirmed: keep giving the direction, never "reached".
                 self.state = NavigationState.GUIDING
-                instruction = self.locator.format_guidance(spatial_loc, self.target_name, self.language)
+                instruction = self.locator.format_guidance(
+                    replace(spatial_loc, is_reached=False), self.target_name, self.language
+                )
                 self.speaker.speak(instruction, priority=SpeechPriority.GUIDANCE)
 
             return NavigationStep(

@@ -340,7 +340,7 @@ def main() -> None:
             nav_controller = NavigationController(
                 target_name=nav_target,
                 matcher=TargetMatcher(supported_classes=detector.class_names),
-                locator=SpatialLocator(),
+                locator=SpatialLocator.for_target(nav_target),
                 obstacle_detector=ObstacleDetector(enabled=not args.no_obstacles, language=reply_language),
                 speaker=speaker,
                 tracker=TargetTracker(),

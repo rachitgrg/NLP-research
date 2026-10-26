@@ -10,7 +10,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-04 | Detector split: image-level 80/20 of COCO train2014, seed 42, val ≤ 3,000 | 2026-10-14 | Active (known leakage, see D-04) |
 | D-05 | Fine-tuned 15-class model is the app default | 2026-10-20 | Active, pending R2 |
 | D-06 | Target-specific threshold 0.25 + temporal smoothing | 2026-10-20 | Active |
-| D-07 | Guidance: 5 image-space zones; "reached" = box ≥ 22 % of frame | 2026-10-09 | Active (heuristic) |
+| D-07 | Guidance: 5 image-space zones; "reached" = box ≥ 22 % of frame | 2026-10-09 | Active (heuristic); arrival area per target since D-20 |
 | D-08 | Scope: closed-set detection now; no referring-expression grounding yet | 2026-10-20 | Active |
 | D-09 | RefCOCO: use one split scheme only | 2026-10-21 | **Open** |
 | D-10 | Speech output via Windows SAPI (comtypes), pyttsx3 elsewhere | 2026-10-20 | Active |
@@ -23,6 +23,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table reviewed and Hindi voice working 2026-10-27 |
 | D-18 | Paper scope: evaluate Hindi and English only; Sarvam baseline only within its free credit | 2026-10-25 | Active (user direction) |
 | D-19 | EXP-08 evaluated in a quiet room only; noisy condition dropped | 2026-10-27 | Active (user direction) |
+| D-20 | Arrival area per target (watch 3 %, keys 9 %, else 22 %); arrival spoken only when confirmed | 2026-10-27 | Active (heuristic, one probe per object) |
 
 ---
 
@@ -146,3 +147,8 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 - **Decision (2026-10-27, user direction):** the noisy-condition recordings planned in the EXP-08 protocol are dropped. Run 1 (120 quiet clips, 3 speakers) is the final EXP-08 data set; D-15 stands on it.
 - **Why:** the paper is the priority (D-18), and the quiet run already answers the model choice.
 - **Consequence for the paper:** recognition accuracy is reported for a quiet room only. Robustness to background noise (TV, traffic, other speakers) is a stated limitation; don't claim it.
+
+### D-20 · Arrival area per target; arrival announced only when confirmed
+- **Decision (2026-10-27):** amends D-07. `ARRIVAL_AREA_BY_TARGET` (config, env-overridable) sets the "reached" box area per target: watch 0.03, keys/key 0.09; every other target keeps 0.22. `SpatialLocator.for_target()` applies it in `assistant.py`, `main.py` and the controller's default. The arrival message is spoken only when the 5-frame confirmation completes.
+- **Why:** in EXP-09 run 1 no watch/keys session could end. The worn watch's box peaked at 4.1 % and the keys' at 11.2 % before the open-vocabulary model lost them, and the arrival message had been spoken on a single unconfirmed frame (`experiments/2026-10-27_offline_end_to_end/`).
+- **Limits:** the values come from one 25 s probe per object, one tester, the laptop webcam. Other small open-vocabulary objects (glasses, wallet, medicine, charger) keep 22 % and may show the same problem; they haven't been probed. As with D-07, area is not distance.
