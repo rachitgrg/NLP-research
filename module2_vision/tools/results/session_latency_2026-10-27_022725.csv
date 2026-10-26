@@ -3,3 +3,7 @@ timestamp,scenario,target,detection_mode,spoken_language,reply_language,asr_back
 2026-10-27 02:28:39,E5_keys_fix,keys,open-vocab,en,en,whisper,large-v3,cuda,True,0,8.121,5.27,1.326,2.199,0.736,0.188,24.313,arrived
 2026-10-27 02:29:52,H4_watch_fix,watch,open-vocab,hi,hi,whisper,large-v3,cuda,True,0,7.717,5.239,1.334,2.278,0.633,0.144,17.409,arrived
 2026-10-27 02:30:53,H5_keys_fix,key,open-vocab,hi,hi,whisper,large-v3,cuda,True,0,7.432,5.218,1.174,2.285,0.631,0.071,10.298,arrived
+2026-10-27 03:03:40,,bottle,closed-set,ur,en,whisper,large-v3,cuda,True,0,8.681,5.248,1.706,2.268,0.0,6.417,34.954,arrived
+2026-10-27 03:05:55,,bottle,closed-set,ur,en,whisper,large-v3,cuda,True,0,7.688,5.215,1.663,2.266,0.0,1.308,,stopped
+2026-10-27 03:07:34,,bottle,closed-set,ur,en,whisper,large-v3,cuda,True,0,11.907,5.396,2.34,4.143,0.0,0.111,,stopped
+2026-10-27 03:09:22,,bottle,closed-set,en,en,whisper,large-v3,cuda,True,0,11.489,5.372,2.356,4.122,0.0,0.107,54.264,arrived
