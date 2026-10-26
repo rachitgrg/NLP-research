@@ -51,7 +51,7 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
 - **Risks:** small objects (keys) are hard at 640 px. Mitigate by suggesting the user move closer and using a lower threshold plus N-of-M confirmation (R5).
 - **Alternatives:** Grounding DINO / OWLv2 (more accurate on phrases, but a few FPS and a heavy `transformers` dependency).
 
-## R4 — End-to-end integrated run
+## R4 — End-to-end integrated run  *(done 2026-10-27 as EXP-09, offline: 10/10 sessions arrived; C19)*
 
 - **Objective:** a verified voice → find → guide → stop session.
 - **Tasks:**
@@ -85,7 +85,7 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
 - **Accessibility protocol:** scripted rooms, time-to-find, success rate, and user feedback on speech cadence; test with a phone or chest-mounted camera facing forward.
 - **Offline STT fallback:** ~~wire the existing faster-whisper code~~. Superseded by R9: offline is now the default, not a fallback.
 
-## R9 — Fully offline and multilingual (USP; started 2026-10-23, branch `feature/offline-multilingual`)
+## R9 — Fully offline and multilingual (USP; started 2026-10-23, branch `feature/offline-multilingual`)  *(done 2026-10-27 except the optional ONNX export)*
 
 - **Objective:** every session runs on the laptop without internet, in the user's language. The paper reports the laptop prototype; a phone/glasses product is future work (D-16).
 - **Done (2026-10-23):**
@@ -101,12 +101,22 @@ Ground rules: small testable changes; never delete datasets, weights, or noteboo
   3. ~~Run EXP-08~~ Done 2026-10-27 (run 1, incl. Sarvam); D-15 decided: large-v3 + language hint.
   4. ~~Optional~~ Not pursued: Whisper large-v3/medium reach 90 % in Hindi. Optional, if Whisper is weak on Indic languages: IndicConformer-600M + IndicTrans2-200M behind the same interface (install approval; gated model).
   5. ~~Native-speaker review of the Hindi phrases~~ Done 2026-10-27 (accepted unchanged). ~~Install a Windows Hindi voice~~ Done 2026-10-27 (OneCore voices, read by `tts_speaker.py`). Add tables for further languages.
-  6. **EXP-09** (scenario sheet ready 2026-10-27: `experiments/2026-10-27_offline_end_to_end/`, 5 objects × Hindi/English): `offline_check.py`, then network off, then `assistant.py --scenario <name>`: 5 scenarios × ≥ 2 languages, laptop webcam and a forward-facing USB camera. Rows land in `tools/results/session_latency_<date>.csv`.
+  6. ~~**EXP-09**~~ Done 2026-10-27, C19 passed (scenario sheet: `experiments/2026-10-27_offline_end_to_end/`, 5 objects × Hindi/English): `offline_check.py`, then network off, then `assistant.py --scenario <name>`: 5 scenarios × ≥ 2 languages, laptop webcam and a forward-facing USB camera. Rows land in `tools/results/session_latency_<date>.csv`.
   7. **EXP-10 completion:** ~~large Whisper models on CPU~~ (done 2026-10-27: large-v3 7.5 s, small 1.2 s per request); optional ONNX/INT8 export (`onnx`/`onnxruntime` install approval).
 - **Acceptance:**
   - C19: a full session with the network off.
   - EXP-08 table: object accuracy per language for each backend vs Sarvam.
   - EXP-10 table.
+
+## R10 — Watch lying on a table  *(proposed 2026-10-27; nothing implemented; needs the user's go-ahead)*
+
+- **Why:** a blind user looks for a watch on a table, not on the wrist. EXP-06: worn watch 99.7 %, watch lying flat 0 % at 0.25 (seen at ~0.12 in 73 % of frames). The cause is not known: training-data bias (watches mostly worn) is a hypothesis; the low laptop-webcam angle and the small size fit the data equally well.
+- **Plan, in order:**
+  1. **Test set first:** saved frames of 2–3 watches × 2–3 surfaces × face up/down × two viewpoints (laptop webcam, phone looking down), plus no-watch scenes for false sightings. `openvocab_trials.py` needs an option to save frames.
+  2. **Cheap options:** (A) camera looking down; (B) watch-only threshold ~0.10 with smoothing; (C) 960 px input for the open-vocabulary model; (D) visual prompt: the user photographs their own watch once (YOLOE visual prompting; check support in the installed version).
+  3. **Only if needed:** a 16th "watch" class in the closed-set model from Open Images (CC BY) + own photos (download, labelling, retraining: approval; changes D-03).
+  4. Compare all on the step-1 frames (found rate, false sightings); record a decision.
+- **Acceptance:** a measured found rate for a flat watch on a table with ≤ the current false-sighting rate.
 
 ## R8 — Documentation, demo, academic deliverables
 

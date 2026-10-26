@@ -4,6 +4,11 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-27 — C19 passed (network off confirmed); repo prepared for paper writing
+- **Network off:** the user confirmed Airplane mode and Wi-Fi were off for all EXP-09 sessions, and `Test-NetConnection` printed `False`. `observations.csv` updated; **C19 is now citable** (functional, one tester, one desk). The "don't claim offline operation" warning was replaced by a narrower one (not on phones; GPU needed, C22).
+- **Paper preparation:** `paper_notes/outline.md` rewritten for the current system (offline + multilingual + open vocabulary; it still described Sarvam and only EXP-01–05). `paper_notes/todo.md` and `IMPLEMENTATION_ROADMAP.md` updated (R4 and R9 done; watch-on-table plan added as R10, proposed). New mentor summary: `paper_notes/MENTOR_SUMMARY_2026-10-27.md`.
+- **Links:** `experiments/2026-10-27_offline_end_to_end/`, `paper_notes/claims_and_limitations.md` C19.
+
 ## 2026-10-27 — EXP-09 re-run: watch and keys arrive after the fix
 - **What:** the user re-ran E4/E5/H4/H5 (worn watch, keys on the desk; English and Hindi) with commit `5b1c847`. All 4 ended `arrived` (10.3–24.3 s). Recognition 1.17–1.33 s after the request; the 7.4–8.1 s model load now happens before the prompt.
 - **Overall:** final configuration 10/10 sessions arrived, 14/14 targets heard correctly. `observations.csv` filled in from the logs and the tester's verbal summary (exact wording not recorded).

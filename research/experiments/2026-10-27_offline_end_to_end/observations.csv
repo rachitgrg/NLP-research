@@ -1,15 +1,15 @@
 scenario,said,heard_target,target_correct,reply_language_ok,guidance_ok,finish,network_off_checked,notes
-E1_bottle,not recorded (sheet wording suggested),bottle,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,Filled from the session log + tester's verbal summary on 2026-10-27 ("overall it was pretty good")
-E2_phone,not recorded (sheet wording suggested),cell phone,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,First sighting only after 10.6 s (phone out of view at start?); not commented on by tester
-E3_cup,not recorded (sheet wording suggested),cup,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,
-E4_watch,not recorded (sheet wording suggested),watch,yes,yes (tester summary),partly,stopped (Q),not confirmed,"Worn watch. 'Directly in front of you' spoken but the session didn't end; bug 1 (box never reaches 22 %), fixed by D-20"
-E5_keys,not recorded (sheet wording suggested),keys,yes,yes (tester summary),partly,stopped (Q),not confirmed,Same as E4 (bug 1)
-H1_bottle,not recorded (sheet wording suggested),bottle,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,Slowest arrival (31.3 s); not commented on by tester
-H2_phone,not recorded (sheet wording suggested),cell phone,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,
-H3_cup,not recorded (sheet wording suggested),cup,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,
-H4_watch,not recorded (sheet wording suggested),watch,yes,yes (tester summary),partly,stopped (Q),not confirmed,Same as E4 (bug 1); Hindi replies
-H5_keys,not recorded (sheet wording suggested),key,yes,yes (tester summary),partly,stopped (Q),not confirmed,"Same as E4 (bug 1); 'chaabi' normalised to 'key', prompted as 'bunch of keys' (D-14)"
-E4_watch_fix,not recorded (sheet wording suggested),watch,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,Re-run after the D-20 fix (commit 5b1c847); tester: "both objects are detected successfully"
-E5_keys_fix,not recorded (sheet wording suggested),keys,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,Re-run after D-20
-H4_watch_fix,not recorded (sheet wording suggested),watch,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,Re-run after D-20
-H5_keys_fix,not recorded (sheet wording suggested),key,yes,yes (tester summary),yes (tester summary),arrived,not confirmed,Re-run after D-20
+E1_bottle,not recorded (sheet wording suggested),bottle,yes,yes (tester summary),yes (tester summary),arrived,yes,Filled from the session log + tester's verbal summary on 2026-10-27 ("overall it was pretty good")
+E2_phone,not recorded (sheet wording suggested),cell phone,yes,yes (tester summary),yes (tester summary),arrived,yes,First sighting only after 10.6 s (phone out of view at start?); not commented on by tester
+E3_cup,not recorded (sheet wording suggested),cup,yes,yes (tester summary),yes (tester summary),arrived,yes,
+E4_watch,not recorded (sheet wording suggested),watch,yes,yes (tester summary),partly,stopped (Q),yes,"Worn watch. 'Directly in front of you' spoken but the session didn't end; bug 1 (box never reaches 22 %), fixed by D-20"
+E5_keys,not recorded (sheet wording suggested),keys,yes,yes (tester summary),partly,stopped (Q),yes,Same as E4 (bug 1)
+H1_bottle,not recorded (sheet wording suggested),bottle,yes,yes (tester summary),yes (tester summary),arrived,yes,Slowest arrival (31.3 s); not commented on by tester
+H2_phone,not recorded (sheet wording suggested),cell phone,yes,yes (tester summary),yes (tester summary),arrived,yes,
+H3_cup,not recorded (sheet wording suggested),cup,yes,yes (tester summary),yes (tester summary),arrived,yes,
+H4_watch,not recorded (sheet wording suggested),watch,yes,yes (tester summary),partly,stopped (Q),yes,Same as E4 (bug 1); Hindi replies
+H5_keys,not recorded (sheet wording suggested),key,yes,yes (tester summary),partly,stopped (Q),yes,"Same as E4 (bug 1); Hindi request normalised to 'key', prompted as 'bunch of keys' (D-14)"
+E4_watch_fix,not recorded (sheet wording suggested),watch,yes,yes (tester summary),yes (tester summary),arrived,yes,Re-run after the D-20 fix (commit 5b1c847); tester: "both objects are detected successfully"
+E5_keys_fix,not recorded (sheet wording suggested),keys,yes,yes (tester summary),yes (tester summary),arrived,yes,Re-run after D-20
+H4_watch_fix,not recorded (sheet wording suggested),watch,yes,yes (tester summary),yes (tester summary),arrived,yes,Re-run after D-20
+H5_keys_fix,not recorded (sheet wording suggested),key,yes,yes (tester summary),yes (tester summary),arrived,yes,Re-run after D-20

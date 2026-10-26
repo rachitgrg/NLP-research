@@ -1,6 +1,6 @@
 # EXP-09 · Offline end-to-end sessions (roadmap R9, claim C19)
 
-**Status (2026-10-27): run 1 (10 sessions) and the watch/keys re-run after the fix (4 sessions) are done; 14/14 targets heard correctly, 10/10 sessions in the final configuration arrived.** `observations.csv` was filled in from the session log and the tester's verbal summary. Still open: the tester's confirmation that the network was off (C19).
+**Status (2026-10-27): run 1 (10 sessions) and the watch/keys re-run after the fix (4 sessions) are done; 14/14 targets heard correctly, 10/10 sessions in the final configuration arrived.** `observations.csv` was filled in from the session log and the tester's verbal summary. Network off confirmed by the tester (2026-10-27): Airplane mode and Wi-Fi were off for every session, and `Test-NetConnection` printed `False`. **C19 passed.**
 
 | | |
 |---|---|
@@ -131,7 +131,7 @@ Tester: "both objects are detected successfully". With both fixes, the reply aft
 
 **Overall (final configuration = closed-set sessions of run 1 + the re-run):** 10/10 targets heard correctly, 10/10 sessions arrived (5.8–31.3 s), replies in the spoken language. `observations.csv` marks what comes from the log and what comes from the tester's summary; the exact words said weren't recorded.
 
-**Still to do:** the tester's confirmation that Airplane mode was on and the connectivity check printed `False` (the logs only show `OFFLINE_MODE=True`, the software flag).
+**Network off:** confirmed by the tester for all 14 sessions (Airplane mode + Wi-Fi off, `Test-NetConnection` = False); recorded in `observations.csv`.
 
 ## Caveats (known in advance)
 - One tester, one desk, the laptop webcam facing the user; 5 scenarios per language, one attempt each. This shows that the system *runs* offline, not how accurate it is.
