@@ -1,6 +1,6 @@
 # EXP-08 · Offline multilingual speech recognition (roadmap R9)
 
-**Status (2026-10-27): run 1 complete for the quiet condition: 120 Hindi + English clips, 3 speakers, every Whisper size (tiny → large-v3) offline plus the Sarvam cloud baseline.** Still to come: noisy-condition clips. Optional: AI4Bharat IndicConformer. Cite only run 1 and its caveats.
+**Status (2026-10-27): run 1 complete for the quiet condition: 120 Hindi + English clips, 3 speakers, every Whisper size (tiny → large-v3) offline plus the Sarvam cloud baseline.** The noisy condition was dropped (D-19, user direction), so run 1 is final. AI4Bharat IndicConformer is not pursued for now. Cite only run 1 and its caveats.
 
 | | |
 |---|---|

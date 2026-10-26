@@ -20,8 +20,9 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-14 | Prompt map: "keys"/"key" → model prompt `bunch of keys` | 2026-10-23 | Active (approved by the user 2026-10-23) |
 | D-15 | On-device speech recognition (faster-whisper, translate) replaces Sarvam; Sarvam opt-in and paper baseline | 2026-10-23 | Active; model size decided 2026-10-27: large-v3 + language hint (EXP-08 run 1) |
 | D-16 | Fully offline by default (project USP); laptop prototype for the paper, phone/glasses later | 2026-10-23 | Active (user direction) |
-| D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table is a draft pending native review |
+| D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table reviewed 2026-10-27; no Hindi voice installed yet |
 | D-18 | Paper scope: evaluate Hindi and English only; Sarvam baseline only within its free credit | 2026-10-25 | Active (user direction) |
+| D-19 | EXP-08 evaluated in a quiet room only; noisy condition dropped | 2026-10-27 | Active (user direction) |
 
 ---
 
@@ -111,7 +112,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 - **Still open:** the model size and whether Indic languages are routed to AI4Bharat IndicConformer + IndicTrans2 (MIT). EXP-08 decides, by object accuracy per language with ≤ 2 s latency (`experiments/2026-10-23_multilingual_offline_asr/`).
 - **Evidence so far:** English smoke test only, 10/10 objects with tiny/base on the GPU at ~0.1 s (EXP-08 smoke). No multilingual evidence yet.
 - **Update 2026-10-27 (EXP-08 run 1, 120 Hindi + English clips, 3 speakers):** large-v3 90 % object accuracy in Hindi and 90.0–91.7 % in English; tiny/base only 33 %/55 % in Hindi. With the language given, large-v3 has a median of 0.55 s and a maximum of 1.73 s, which is within the 2 s rule. Provisional choice: large-v3 (already the `ASR_MODEL_SIZE` default) with `ASR_LANGUAGE` set by the user. Still open: `small`/`medium`, the Sarvam reference, and noisy conditions.
-- **Decided 2026-10-27 (same day, all sizes + Sarvam):** by the EXP-08 rule, **large-v3 with the language given** for Hindi and English. English: 90.0 % within 2 s (auto 91.7 % has a 2.22 s clip). Hindi: tied with medium at 90.0 %. Fallback for smaller devices: medium+hint (1.5 GB; 90.0 % HI, 86.7 % EN, 0.35 s). The cost of going offline: 5–6 points below Sarvam (95.8 %). The AI4Bharat route is not pursued for now (Hindi already ties across sizes; would need an install). Re-check with the noisy clips.
+- **Decided 2026-10-27 (same day, all sizes + Sarvam):** by the EXP-08 rule, **large-v3 with the language given** for Hindi and English. English: 90.0 % within 2 s (auto 91.7 % has a 2.22 s clip). Hindi: tied with medium at 90.0 %. Fallback for smaller devices: medium+hint (1.5 GB; 90.0 % HI, 86.7 % EN, 0.35 s). The cost of going offline: 5–6 points below Sarvam (95.8 %). The AI4Bharat route is not pursued for now (medium and large-v3 both reach 90 % in Hindi; it would need an install). No noisy re-check (D-19).
 
 ### D-16 · Offline by default; laptop prototype for the paper
 - **Decision (2026-10-23, user direction):**
@@ -130,6 +131,7 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 - **Why:** the guidance vocabulary is small and fixed (~15 templates), so reviewed tables are more reliable than MT and cost nothing at runtime.
 - **Open:**
   - The Hindi table must be checked by a native speaker. It is worded so no verb agrees with the object's gender.
+  - **Update 2026-10-27:** reviewed by a native Hindi speaker (the user); accepted unchanged. Still open: a Hindi voice, so Hindi replies haven't been heard yet.
   - This machine has English voices only, so Hindi replies need a Windows Hindi voice (install approval).
   - Other languages need their own table and voice; until then they get English replies (a stated limitation).
 
@@ -139,3 +141,8 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
   - EXP-08 records and evaluates **Hindi and English only** (code-mixed Hinglish counts as Hindi, as spoken naturally). The user and the available speakers don't speak other languages. This replaces the EXP-08 target of "≥ 4 languages".
   - The Sarvam cloud baseline runs only while the account's free credit covers it; the project has no budget for paid calls.
 - **Consequence for the paper:** the system supports any language Whisper/Sarvam accept, but only Hindi and English are measured. Other Indian languages are a stated limitation and future work; don't claim accuracy for them.
+
+### D-19 · EXP-08: quiet room only
+- **Decision (2026-10-27, user direction):** the noisy-condition recordings planned in the EXP-08 protocol are dropped. Run 1 (120 quiet clips, 3 speakers) is the final EXP-08 data set; D-15 stands on it.
+- **Why:** the paper is the priority (D-18), and the quiet run already answers the model choice.
+- **Consequence for the paper:** recognition accuracy is reported for a quiet room only. Robustness to background noise (TV, traffic, other speakers) is a stated limitation; don't claim it.

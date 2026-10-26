@@ -27,6 +27,7 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 | C19 | The full assistant runs with no network connection | ⏳ not yet: library flags and file checks are in place and unit-tested, but no session has run with the network off (EXP-09) | [R]+[V] D-16 |
 | C20 | Offline Whisper large-v3 (translate, on the RTX 3050) extracted the correct object from 90.0 % of Hindi and 91.7 % of English find-requests (3 speakers × 20 prompts per language), median 0.55 s per request with the language given; tiny/base/small reach only 33 %/55 %/82 % in Hindi | ✅ indicative: 3 speakers, quiet room, one microphone, n = 60 per language (±8 pp) | [V] `experiments/2026-10-23_multilingual_offline_asr/` run 1 (2026-10-27) |
 | C21 | The offline recogniser is 5–6 points below the Sarvam cloud reference on the same clips (Sarvam 95.0 % EN / 96.7 % HI; large-v3+hint 90.0 % / 90.0 %); Sarvam was right on every clip Whisper got right | ✅ indicative: same conditions as C20; paired McNemar p = 0.016 uncorrected, 0.10 after Bonferroni ×6, so state it as a consistent gap, not as significant | [V] same, run 1 |
+| C22 | Without a GPU (Ryzen 5 7640HS), the chosen recogniser is too slow for conversation: Whisper large-v3 7.5 s median per request, medium 3.6 s; only small is near real time (1.2 s) at 81.7 % Hindi / 88.3 % English object accuracy | ✅ one laptop CPU, the 120 EXP-08 clips, language given | [V] `experiments/2026-10-23_edge_feasibility/` (2026-10-27) |
 
 ## Must NOT be claimed (current state)
 - **Audio-visual grounding / referring-expression comprehension.** The system detects fixed classes; attributes such as color and position are parsed but ignored (`decisions.md` D-08).
@@ -35,7 +36,7 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 - **General open-vocabulary accuracy.** Only watch, keys and slippers were measured, at one desk (C13). Don't claim the system finds "any object"; keys failed, and untested words (wallet, glasses, …) have unknown accuracy.
 - **Offline operation** (until EXP-09 passes). Since 2026-10-23 the code is offline by default (D-15, D-16), but a session with the network physically off hasn't been run yet. After it passes, cite C19.
 - **"First offline assistant".** On-device object detection already exists (e.g. Google Lookout describes on-device vision; several apps advertise offline detection). Claim only the measured combination: offline multilingual request + open-vocabulary target + guidance to arrival.
-- **Multilingual accuracy** beyond Hindi and English, or Hindi accuracy beyond C20's conditions (quiet room, 3 speakers). Don't claim parity with Sarvam: offline is 5–6 points lower (C21). Replies in Hindi aren't verified either: the phrases are a draft and no Hindi voice is installed (D-17).
+- **Multilingual accuracy** beyond Hindi and English, or Hindi accuracy beyond C20's conditions (quiet room, 3 speakers). Don't claim parity with Sarvam: offline is 5–6 points lower (C21). Spoken Hindi replies aren't verified either: the phrases were reviewed by a native speaker (2026-10-27), but no Hindi voice is installed, so they haven't been heard (D-17).
 
 ## Limitations to state in the paper
 1. The ASR benchmark has n = 10, one speaker, English only, quiet room, and no significance testing.
@@ -48,3 +49,4 @@ Every claim the paper might make, with the evidence behind it. Evidence labels (
 8. RefCOCO statistics in Stage-1 drafts double-count expressions (corrected 2026-10-21).
 9. Open-vocabulary fallback: objects held in the hand were not detected with any prompt; keys needed the prompt "bunch of keys" (EXP-07); a watch lying flat is seen only at low confidence (~0.12); evidence comes from one desk with one object of each kind (EXP-06, EXP-07).
 10. Multilingual evaluation covers Hindi and English only (D-18). Other Indian languages are supported by the recognisers but untested; the speakers available to the project don't speak them.
+11. Speech recognition was measured in a quiet room only (D-19): 3 speakers, one laptop microphone, one take per request. Accuracy in background noise is unknown.

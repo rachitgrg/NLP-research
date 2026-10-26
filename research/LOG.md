@@ -4,6 +4,12 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-27 — Noisy condition dropped (D-19); Hindi phrases reviewed; EXP-10 Whisper on CPU
+- **Scope (D-19, user direction):** EXP-08 is quiet-room only; the noisy recordings are dropped. Limitation 11 added.
+- **Hindi replies (D-17):** the user (native Hindi speaker) reviewed `module2_vision/guidance/phrases.py` and accepted it unchanged; the draft markers are removed (214 vision tests pass). Still no Hindi voice: the Windows Hindi voice download stalled at 0 % on the user's machine (connection not metered; Windows Update and BITS running). Unresolved; see the follow-up below.
+- **EXP-10 (CPU only, 120 EXP-08 clips, language given):** small 1.17 s median (EN 88.3 % / HI 81.7 %), medium 3.59 s (88.3 % / 90.0 %), large-v3 7.48 s (95.0 % / 90.0 %). Only small is near real time without the GPU (7–14× slower than the GPU). CPU `int8` vs GPU `int8_float16` shifts English by up to 3 clips. Claim C22 added.
+- **Links:** `decisions.md` D-17, D-19; `experiments/2026-10-23_edge_feasibility/` (`whisper_cpu_2026-10-27/`); `paper_notes/claims_and_limitations.md` C22, limitation 11.
+
 ## 2026-10-27 — EXP-08 run 1 completed: Whisper small/medium and the Sarvam baseline; D-15 model size decided
 - **What:** with user approval, downloaded Whisper `small` (464 MB) and `medium` (1.5 GB) and ran them offline, with and without the language hint, on the same 120 clips. Ran the Sarvam cloud baseline on the free credit (120 calls).
 - **Results (object accuracy EN / HI, median latency):** small 88.3 % / 81.7 %, 0.27 s (hint 0.17 s); medium 86.7 % / 90.0 %, 0.56 s (hint 0.35 s); Sarvam 95.0 % / 96.7 %, 0.47 s (cloud, includes network). Paired against Sarvam, large-v3+hint: 7 clips Sarvam-only, 0 Whisper-only (exact McNemar p = 0.016, 0.10 after Bonferroni ×6).

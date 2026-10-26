@@ -12,8 +12,8 @@
 #   phrase("target_left", "hi", obj="bottle")  → "बोतल, बाईं ओर।"
 #
 # English strings are unchanged from before the table existed.
-# The Hindi table is a DRAFT: have it checked by a native speaker before
-# reporting results with it (research/decisions.md D-17).
+# The Hindi table was reviewed by a native speaker on 2026-10-27
+# (research/decisions.md D-17).
 # Unknown languages fall back to English.
 # ─────────────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ PHRASES: dict[str, dict[str, str]] = {
         "ask_target":       "Please say what object you are looking for.",
         "looking_for":      "Looking for {obj}. Please hold camera steady and scan slowly.",
     },
-    # DRAFT — needs native-speaker review (D-17).  Phrased so that no verb
+    # Native-speaker reviewed 2026-10-27 (D-17).  Phrased so that no verb
     # agrees with the object: Hindi nouns have gender (बोतल f., फ़ोन m.)
     # and one template serves every object.
     "hi": {
