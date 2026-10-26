@@ -1,0 +1,11 @@
+audio_file,language,speaker,condition,prompt_id,object,english
+audio/sample_01.wav,en,S00,quiet,sample_01,bottle,Where is my black bottle?
+audio/sample_02.wav,en,S00,quiet,sample_02,phone,Where is my phone?
+audio/sample_03.wav,en,S00,quiet,sample_03,bag,What is the color of this bag?
+audio/sample_04.wav,en,S00,quiet,sample_04,laptop,Is there a laptop in front of me?
+audio/sample_05.wav,en,S00,quiet,sample_05,object,Please identify this object.
+audio/sample_06.wav,en,S00,quiet,sample_06,bag,Where is the red bag?
+audio/sample_07.wav,en,S00,quiet,sample_07,bottle,Can you find my bottle?
+audio/sample_08.wav,en,S00,quiet,sample_08,book,Where is the blue book?
+audio/sample_09.wav,en,S00,quiet,sample_09,phone,Is my phone on the table?
+audio/sample_10.wav,en,S00,quiet,sample_10,laptop,Where is the laptop?

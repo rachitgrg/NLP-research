@@ -1,0 +1,4 @@
+backend,language,n,object_accuracy,language_id_accuracy,errors,mean_latency_s,median_latency_s
+whisper:tiny,all,120,0.55,0.8333,0,0.1883,0.0995
+whisper:tiny,en,60,0.7667,0.8667,0,0.1179,0.0968
+whisper:tiny,hi,60,0.3333,0.8,0,0.2587,0.2998

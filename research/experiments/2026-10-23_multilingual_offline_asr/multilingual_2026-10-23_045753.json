@@ -1,0 +1,29 @@
+{
+  "script": "module1_audio/evaluation/multilingual_benchmark.py",
+  "date": "2026-10-23_045753",
+  "git_commit": "1d7bb32",
+  "manifest": "C:\\Users\\Rachit\\AppData\\Local\\Temp\\claude\\D--NLP-Research\\67c397af-c699-4689-9667-a17108ab90c1\\scratchpad\\en_manifest.csv",
+  "clips": 10,
+  "backends": [
+    "whisper:tiny",
+    "whisper:base",
+    "whisper:tiny+hint"
+  ],
+  "devices": {
+    "whisper:tiny": "cuda",
+    "whisper:base": "cuda",
+    "whisper:tiny+hint": "cuda"
+  },
+  "load_times_s": {
+    "whisper:tiny/auto": 0.63,
+    "whisper:base/auto": 0.34,
+    "whisper:tiny+hint/en": 0.18
+  },
+  "offline_mode": true,
+  "beam_size": 5,
+  "compute_type": "auto (int8_float16 cuda / int8 cpu)",
+  "faster_whisper": "1.2.1",
+  "python": "3.13.1",
+  "parser": "spaCy en_core_web_sm + nlp/query_parser.py",
+  "normalizer": "module2_vision/matching/target_normalizer.py"
+}

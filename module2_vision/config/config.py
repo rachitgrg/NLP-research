@@ -22,6 +22,30 @@ MODULE1_ROOT = PROJECT_ROOT / "module1_audio"
 # used by open-vocabulary detectors.
 WEIGHTS_DIR = MODULE_ROOT / "weights"
 
+# ── Offline mode (roadmap R9, decisions.md D-16) ──────────────
+# The whole assistant runs without internet: models come from disk only.
+# These library flags stop Ultralytics' online check, telemetry and
+# auto-update (YOLO_OFFLINE) and Hugging Face downloads (faster-whisper,
+# transformers).  They must be set before those libraries are imported, so
+# entry points import this module first.  Set OFFLINE_MODE=false to allow
+# downloads (e.g. to fetch a new model once).
+OFFLINE_MODE: bool = os.environ.get("OFFLINE_MODE", "true").lower() in ("true", "1", "yes")
+OFFLINE_ENV_FLAGS: dict[str, str] = {
+    "YOLO_OFFLINE": "1",
+    "HF_HUB_OFFLINE": "1",
+    "TRANSFORMERS_OFFLINE": "1",
+}
+
+
+def apply_offline_mode(enabled: bool = OFFLINE_MODE) -> None:
+    """Set OFFLINE_ENV_FLAGS (values already in the environment win)."""
+    if enabled:
+        for name, value in OFFLINE_ENV_FLAGS.items():
+            os.environ.setdefault(name, value)
+
+
+apply_offline_mode()
+
 
 def add_module1_to_path() -> None:
     """Make module1_audio/ importable (for audio_feedback).
@@ -138,6 +162,27 @@ PROXIMITY_FAR_THRESHOLD: float = float(os.environ.get("PROXIMITY_FAR_THRESHOLD",
 PROXIMITY_APPROACHING_THRESHOLD: float = float(os.environ.get("PROXIMITY_APPROACHING_THRESHOLD", "0.22"))
 ARRIVAL_AREA_THRESHOLD: float = float(os.environ.get("ARRIVAL_AREA_THRESHOLD", "0.22"))
 
+
+def _parse_float_map(spec: str) -> dict[str, float]:
+    """'watch=0.03;keys=0.09' → {'watch': 0.03, 'keys': 0.09} (bad items skipped)."""
+    result: dict[str, float] = {}
+    for item in spec.split(";"):
+        target, _, value = item.partition("=")
+        try:
+            result[target.strip().lower()] = float(value)
+        except ValueError:
+            continue
+    return {k: v for k, v in result.items() if k}
+
+
+# Arrival area per target, for objects whose box never gets near 22 % of the
+# frame. EXP-09 probe (2026-10-27): a worn watch peaked at 4.1 % and keys on
+# the desk at 11.2 % before the open-vocabulary model lost them (D-20).
+# Env format: "target=ratio;target2=ratio".
+ARRIVAL_AREA_BY_TARGET: dict[str, float] = _parse_float_map(
+    os.environ.get("ARRIVAL_AREA_BY_TARGET", "watch=0.03;keys=0.09;key=0.09")
+)
+
 # ── Target detection reliability ──────────────────────────────
 # The requested object is accepted from this confidence; every other class
 # still needs CONFIDENCE_THRESHOLD (set equal to it to disable).
@@ -189,6 +234,12 @@ ARRIVAL_CONFIRM_FRAMES: int = int(os.environ.get("ARRIVAL_CONFIRM_FRAMES", "5"))
 SEARCH_TIMEOUT_S: float = float(os.environ.get("SEARCH_TIMEOUT_S", "60"))
 # Stop the camera loop after this many consecutive failed frame reads.
 MAX_CONSECUTIVE_READ_FAILURES: int = int(os.environ.get("MAX_CONSECUTIVE_READ_FAILURES", "50"))
+
+# ── Reply language (roadmap R9, decisions.md D-17) ────────────
+# "auto": speak guidance in the user's spoken language when a phrase table
+# (guidance/phrases.py) AND an installed voice exist, else English.
+# A code ("en", "hi") forces that language (English if it has no voice).
+REPLY_LANGUAGE: str = os.environ.get("REPLY_LANGUAGE", "auto").strip().lower()
 
 # ── Milestone 5 — Audio TTS Feedback ──────────────────────────
 # TTS settings (TTS_*) moved to module1_audio/audio_feedback/tts_config.py

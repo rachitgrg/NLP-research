@@ -36,6 +36,9 @@ Everything the paper needs lives here: what was done (`LOG.md`), why (`decisions
 | `experiments/2026-10-20_desk_detection_trials/` | EXP-05 threshold/smoothing trials, fine-tuned vs stock |
 | `experiments/2026-10-23_open_vocab_comparison/` | EXP-06 open-vocabulary detectors (R3): speed, vocabulary, desk accuracy (watch / keys / slippers); YOLOE-26s text prompt chosen |
 | `experiments/2026-10-23_prompt_wording/` | EXP-07 prompt words for watch and keys: "watch" best; "bunch of keys" finds keys on a table (0 → 99.7 %); held in hand fails for both |
+| `experiments/2026-10-23_multilingual_offline_asr/` | EXP-08 offline multilingual speech recognition (R9): protocol, tooling, English smoke test; run 1 (2026-10-27): Hindi + English, 3 speakers, all Whisper sizes + Sarvam baseline |
+| `experiments/2026-10-23_edge_feasibility/` | EXP-10 CPU-only speed of detectors and every Whisper size (2026-10-27: large-v3 7.5 s vs small 1.2 s per request) |
+| `experiments/2026-10-27_offline_end_to_end/` | EXP-09 offline end-to-end sessions (C19): run 1 + re-run done 2026-10-27: 10/10 arrived in the final configuration after the D-20 fix, network off confirmed; C19 passed |
 | `results/MANIFEST.md` | figure/table → script, inputs, caveats |
 | `results/tables/` | tables 01–08 (Markdown) |
 | `results/scripts/` | `generate_figures.py`, `generate_tables.py` (`--out` for check runs) |
@@ -43,7 +46,7 @@ Everything the paper needs lives here: what was done (`LOG.md`), why (`decisions
 | `figures/` | fig_01–13 (300 dpi) |
 | `baselines/README.md` | ASR and detector comparisons: settings, missing baselines |
 | `references/` | `references.bib` (verify before use), reading notes |
-| `paper_notes/` | `outline.md`, `claims_and_limitations.md`, `todo.md`, `PAPER_RESULTS_DISCUSSION.md` (draft), `FACULTY_DEMO_SUMMARY.md`, `IMPLEMENTATION_ROADMAP.md` |
+| `paper_notes/` | `outline.md` (updated 2026-10-27), `claims_and_limitations.md`, `todo.md`, `PAPER_RESULTS_DISCUSSION.md` (draft), `FACULTY_DEMO_SUMMARY.md` (Stage 1), **`MENTOR_SUMMARY_2026-10-27.md`** (what was done + plans, for the mentor), `IMPLEMENTATION_ROADMAP.md` |
 
 ## Old → new paths (restructure of 2026-10-21)
 Documents written before 2026-10-21 use the old paths. They were left unchanged as historical records.

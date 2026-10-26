@@ -48,13 +48,74 @@ logger = logging.getLogger(__name__)
 # certainly produced no sound (the silent-failure signature above).
 _SILENT_SPEECH_THRESHOLD_S = 0.15
 
+# Windows language IDs (hex, as SAPI voice tokens report them) per
+# language code, for replies in the user's language (roadmap R9).
+SAPI_LANGUAGE_IDS: dict[str, tuple[str, ...]] = {
+    "en": ("409", "809", "4009", "c09", "1009"),
+    "hi": ("439",), "bn": ("445",), "pa": ("446",), "gu": ("447",), "ta": ("449",),
+    "te": ("44a",), "kn": ("44b",), "ml": ("44c",), "mr": ("44e",), "ur": ("420",),
+}
+
+
+# Voices added through Settings → Speech (e.g. Hindi Kalpana / Hemant) are
+# registered only as OneCore voices, which SpVoice.GetVoices() doesn't
+# list. SpVoice can still speak with them when given their tokens.
+_ONECORE_VOICES = r"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech_OneCore\Voices"
+
+
+def _onecore_tokens() -> list[Any]:
+    """OneCore voice tokens; [] off Windows or if the category is missing."""
+    if sys.platform != "win32":
+        return []
+    try:
+        import comtypes.client  # type: ignore
+
+        category = comtypes.client.CreateObject("SAPI.SpObjectTokenCategory")
+        category.SetId(_ONECORE_VOICES, False)
+        tokens = category.EnumerateTokens()
+        return [tokens.Item(i) for i in range(tokens.Count)]
+    except Exception as exc:
+        logger.warning("Could not list OneCore voices: %s", exc)
+        return []
+
+
+def _voice_tokens(voice: Any) -> list[Any]:
+    """SAPI5 desktop voices first (unchanged default), then OneCore voices."""
+    return list(voice.GetVoices()) + _onecore_tokens()
+
+
+def _token_languages(token: Any) -> tuple[str, ...]:
+    return tuple(x.strip().lower() for x in token.GetAttribute("Language").split(";"))
+
+
+def sapi_voices() -> list[tuple[str, tuple[str, ...]]]:
+    """Installed SAPI and OneCore voices as (description, language IDs); [] off Windows."""
+    if sys.platform != "win32":
+        return []
+    try:
+        import comtypes.client  # type: ignore
+
+        tokens = _voice_tokens(comtypes.client.CreateObject("SAPI.SpVoice"))
+        return [(t.GetDescription(), _token_languages(t)) for t in tokens]
+    except Exception as exc:
+        logger.warning("Could not list SAPI voices: %s", exc)
+        return []
+
+
+def voice_languages() -> set[str]:
+    """Language codes with an installed voice (always includes "en")."""
+    found = {"en"}
+    for _, ids in sapi_voices():
+        found |= {code for code, codes in SAPI_LANGUAGE_IDS.items() if set(ids) & set(codes)}
+    return found
+
 
 class _SapiEngine:
     """Windows SAPI5 voice; must be created and used in the same thread."""
 
     _SVSF_IS_XML = 8  # SpeechVoiceSpeakFlags: text contains SAPI XML
 
-    def __init__(self, rate_wpm: int, volume: float, lead_silence_ms: int = 0) -> None:
+    def __init__(self, rate_wpm: int, volume: float, lead_silence_ms: int = 0, language: str = "en") -> None:
         self._lead_silence_ms = max(0, lead_silence_ms)
         import comtypes  # type: ignore
         import comtypes.client  # type: ignore
@@ -65,6 +126,17 @@ class _SapiEngine:
         # SAPI rate is -10..10 (0 ≈ 180 wpm); volume is 0..100.
         self._voice.Rate = max(-10, min(10, round((rate_wpm - 180) / 18)))
         self._voice.Volume = max(0, min(100, int(volume * 100)))
+        if language != "en":
+            self._select_voice(language)
+
+    def _select_voice(self, language: str) -> None:
+        """Use the first installed voice for ``language`` (default voice if none)."""
+        wanted = set(SAPI_LANGUAGE_IDS.get(language, ()))
+        for token in _voice_tokens(self._voice):
+            if set(_token_languages(token)) & wanted:
+                self._voice.Voice = token
+                return
+        logger.warning("No SAPI voice for language %r; using the default voice.", language)
 
     def speak(self, text: str) -> None:
         # Synchronous (no async flag): returns after speaking.
@@ -142,7 +214,10 @@ class TTSSpeaker:
         speech_volume: float = TTS_SPEECH_VOLUME,
         use_mock: bool = False,
         repeat_cooldown_s: float = TTS_REPEAT_COOLDOWN_S,
+        language: str = "en",
     ) -> None:
+        # Voice language (code such as "en", "hi"); see voice_languages().
+        self.language = language
         self.enabled = enabled
         self.cooldown_s = cooldown_s
         self.repeat_cooldown_s = repeat_cooldown_s
@@ -256,7 +331,7 @@ class TTSSpeaker:
         try:
             if sys.platform == "win32":
                 engine_cls = _SapiEngine
-                return _SapiEngine(self.speech_rate, self.speech_volume, TTS_LEAD_SILENCE_MS)
+                return _SapiEngine(self.speech_rate, self.speech_volume, TTS_LEAD_SILENCE_MS, self.language)
             engine_cls = _Pyttsx3Engine
             return _Pyttsx3Engine(self.speech_rate, self.speech_volume)
         except Exception as exc:

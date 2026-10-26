@@ -49,6 +49,36 @@ def infer_kind(model_path: str | Path) -> str:
     raise ValueError(f"Not an open-vocabulary model: {model_path!r}")
 
 
+# Text encoder each text-prompt family loads (paths relative to WEIGHTS_DIR);
+# any one of the alternatives is enough.  YOLOE-26 uses MobileCLIP2, older
+# YOLOE checkpoints MobileCLIP; YOLO-World uses CLIP ViT-B/32.
+TEXT_ENCODER_FILES: dict[str, tuple[str, ...]] = {
+    "yoloe": ("mobileclip2_b.ts", "mobileclip_blt.ts"),
+    "world": ("clip/ViT-B-32.pt",),
+}
+
+
+def required_files(model_path: str | Path, weights_dir: Path = WEIGHTS_DIR) -> list[tuple[str, ...]]:
+    """
+    Files the model needs on disk, as groups of alternatives (one per need):
+    the weights, plus the text encoder for text-prompt models.
+    """
+    path = Path(model_path)
+    if not path.is_absolute() and path.parent == Path("."):
+        path = Path(weights_dir) / path
+    needs = [(str(path),)]
+    encoders = TEXT_ENCODER_FILES.get(infer_kind(model_path), ())
+    if encoders:
+        needs.append(tuple(str(Path(weights_dir) / f) for f in encoders))
+    return needs
+
+
+def missing_files(model_path: str | Path, weights_dir: Path = WEIGHTS_DIR) -> list[str]:
+    """Needs from required_files() with none of their alternatives on disk."""
+    return [" or ".join(group) for group in required_files(model_path, weights_dir)
+            if not any(Path(p).is_file() for p in group)]
+
+
 def _normalise(name: str) -> str:
     """Lowercase; '_' and '-' count as spaces ("flip flop" matches "flip-flop")."""
     return " ".join(name.lower().replace("_", " ").replace("-", " ").split())

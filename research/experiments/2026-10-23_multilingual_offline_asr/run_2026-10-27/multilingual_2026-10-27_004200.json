@@ -1,0 +1,23 @@
+{
+  "script": "module1_audio/evaluation/multilingual_benchmark.py",
+  "date": "2026-10-27_004200",
+  "git_commit": "1acbd66",
+  "manifest": "D:\\NLP-Research\\module1_audio\\evaluation\\multilingual\\recordings.csv",
+  "clips": 120,
+  "backends": [
+    "whisper:medium"
+  ],
+  "devices": {
+    "whisper:medium": "cuda"
+  },
+  "load_times_s": {
+    "whisper:medium/auto": 3.09
+  },
+  "offline_mode": true,
+  "beam_size": 5,
+  "compute_type": "auto (int8_float16 cuda / int8 cpu)",
+  "faster_whisper": "1.2.1",
+  "python": "3.13.1",
+  "parser": "spaCy en_core_web_sm + nlp/query_parser.py",
+  "normalizer": "module2_vision/matching/target_normalizer.py"
+}

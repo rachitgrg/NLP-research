@@ -4,7 +4,7 @@ Assistive object finder for visually impaired users: voice request → camera de
 Research record (source of truth for the paper): `research/` (start at `research/README.md`). Verified system status: `research/PROJECT_AUDIT.md`. Planned work: `research/paper_notes/IMPLEMENTATION_ROADMAP.md`.
 
 ## Layout
-- `module1_audio/`: all sound. Mic capture, Sarvam STT (translate to English), spaCy rule parser, ASR benchmark (`evaluation/`), speech output (`audio_feedback/`, settings in `audio_feedback/tts_config.py`). Entry: `main.py`.
+- `module1_audio/`: all sound. Mic capture, speech → English (on-device Whisper by default, `speech/transcriber_factory.py`; Sarvam opt-in), spaCy rule parser, ASR benchmark (`evaluation/`), speech output (`audio_feedback/`, settings in `audio_feedback/tts_config.py`). Entry: `main.py`.
 - `module2_vision/`: all vision. Detection, matching, guidance, navigation, voice bridge (`pipeline/m3_pipeline.py`), trial tool (`tools/`). Entry points: `main.py` (flags `--target/--voice/--navigate`), `assistant.py` (voice-first).
   - `training/`: `train.py` (15-class YOLOv8n fine-tune), `test_model.py`, `runs/` (gitignored; `runs/train/weights/best.pt` is the default model).
   - `notebooks/`: 01 inspection, 02 preprocessing, 03 EDA (run with `notebooks/` as the working directory).
@@ -15,11 +15,14 @@ Research record (source of truth for the paper): `research/` (start at `research
 
 ## Environment
 - Use the root `.venv` (Python 3.13, CUDA torch, voice + vision deps): `.\.venv\Scripts\python`. Training and notebooks ran under the global Python 3.13 (pandas, scikit-learn, ipykernel are not yet in `.venv`).
-- Secrets: the root `.env` (`SARVAM_API_KEY`). Never print, commit, or copy it. `.env.example` holds names only.
+- Secrets: the root `.env` (`SARVAM_API_KEY`, only needed for `ASR_BACKEND=sarvam`). Never print, commit, or copy it. `.env.example` holds names only.
+- Offline by default (D-16): `OFFLINE_MODE=true` blocks model downloads and library network calls. Speech settings: `ASR_BACKEND` (whisper|sarvam), `ASR_MODEL_SIZE`, `ASR_LANGUAGE` (`module1_audio/speech/asr_config.py`); replies: `REPLY_LANGUAGE` (`module2_vision/config/config.py`, phrases in `guidance/phrases.py`). To fetch a new model once, set `OFFLINE_MODE=false` (ask first: it is a download).
 
 ## How to run
 - Voice only: `cd module1_audio; ..\.venv\Scripts\python main.py`
 - Assistant: `cd module2_vision; ..\.venv\Scripts\python main.py --target bottle --navigate` (desk test: add `--no-obstacles`) or `..\.venv\Scripts\python assistant.py`
+- Offline pre-flight: `cd module2_vision; ..\.venv\Scripts\python tools\offline_check.py` (lists every model file the configuration needs; exit 1 if one is missing).
+- Multilingual ASR (EXP-08): record with `cd module1_audio; ..\.venv\Scripts\python evaluation\record_multilingual.py --language hi --speaker S01`, run `evaluation\multilingual_benchmark.py --backends whisper:large-v3 whisper:large-v3+hint` (`sarvam --allow-cloud` is paid; ask first). Writes dated `evaluation/runs/multilingual_<date_time>.*`.
 - ASR benchmark: `cd module1_audio; ..\.venv\Scripts\python evaluation\evaluate_models.py` (calls the paid Sarvam API; ask first). Writes `evaluation/runs/results_<date_time>.csv`; `evaluation/results.csv` is the 2026-09-16 run of record and is never written. Plot or score a run with `plot_results.py --results <csv>` / `semantic_eval.py --results <csv>`.
 - Detection trials: `cd module2_vision; ..\.venv\Scripts\python tools\detection_trials.py --scene "<name>"` (appends to `tools/results/detection_trials_<date>.csv` with the settings used; `detection_trials.csv` is the frozen 2026-10-20 record)
 - Open-vocabulary (R3): benchmark `tools\openvocab_benchmark.py`; desk trials `tools\openvocab_trials.py --target watch --scene "<name>"` (all models on the same recorded frames; nothing saved to disk; `--prompts a b a+b` compares prompt words, EXP-07). Weights and text encoders live in `module2_vision/weights/`; `OpenVocabDetector` downloads text encoders there, not to Ultralytics' global folder.
@@ -27,9 +30,9 @@ Research record (source of truth for the paper): `research/` (start at `research
 - Paper tables/figures: `.\.venv\Scripts\python research\results\scripts\generate_tables.py --out <scratch>` (without `--out` it overwrites committed outputs; ask first)
 
 ## Tests
-- `cd module1_audio; ..\.venv\Scripts\python -m pytest tests -q` (96 tests on 2026-10-21)
-- `cd module2_vision; ..\.venv\Scripts\python -m pytest tests -q` (194 tests on 2026-10-23)
-- Tests mock the camera, YOLO, and TTS. Hardware behaviour needs a manual run.
+- `cd module1_audio; ..\.venv\Scripts\python -m pytest tests -q` (121 tests on 2026-10-23)
+- `cd module2_vision; ..\.venv\Scripts\python -m pytest tests -q` (214 tests on 2026-10-23)
+- Tests mock the camera, YOLO, Whisper and TTS. The `no_network` fixture (both conftests) fails a test that opens a connection. Hardware behaviour needs a manual run; `assistant.py --scenario <name>` logs per-stage timings to `tools/results/session_latency_<date>.csv`.
 
 ## Conventions
 - Run scripts from inside their module folder; each module puts its own root on `sys.path`.

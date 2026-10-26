@@ -4,13 +4,13 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 
 | ID | Decision | Date | Status |
 |---|---|---|---|
-| D-01 | Sarvam Saaras v3 as the runtime speech recogniser | 2026-09-16 | Active |
+| D-01 | Sarvam Saaras v3 as the runtime speech recogniser | 2026-09-16 | **Superseded by D-15** (2026-10-23) |
 | D-02 | Rule-based spaCy parser with dependency-based object choice | 2026-09-16 | Active |
 | D-03 | Detector restricted to 15 indoor COCO classes | 2026-10-14 | Active |
 | D-04 | Detector split: image-level 80/20 of COCO train2014, seed 42, val ≤ 3,000 | 2026-10-14 | Active (known leakage, see D-04) |
 | D-05 | Fine-tuned 15-class model is the app default | 2026-10-20 | Active, pending R2 |
 | D-06 | Target-specific threshold 0.25 + temporal smoothing | 2026-10-20 | Active |
-| D-07 | Guidance: 5 image-space zones; "reached" = box ≥ 22 % of frame | 2026-10-09 | Active (heuristic) |
+| D-07 | Guidance: 5 image-space zones; "reached" = box ≥ 22 % of frame | 2026-10-09 | Active (heuristic); arrival area per target since D-20 |
 | D-08 | Scope: closed-set detection now; no referring-expression grounding yet | 2026-10-20 | Active |
 | D-09 | RefCOCO: use one split scheme only | 2026-10-21 | **Open** |
 | D-10 | Speech output via Windows SAPI (comtypes), pyttsx3 elsewhere | 2026-10-20 | Active |
@@ -18,10 +18,17 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 | D-12 | One environment (root `.venv`) and one repository layout | 2026-10-21 | Active |
 | D-13 | Open-vocabulary fallback: YOLOE-26s text prompt, alongside the closed-set model | 2026-10-23 | Active |
 | D-14 | Prompt map: "keys"/"key" → model prompt `bunch of keys` | 2026-10-23 | Active (approved by the user 2026-10-23) |
+| D-15 | On-device speech recognition (faster-whisper, translate) replaces Sarvam; Sarvam opt-in and paper baseline | 2026-10-23 | Active; model size decided 2026-10-27: large-v3 + language hint (EXP-08 run 1) |
+| D-16 | Fully offline by default (project USP); laptop prototype for the paper, phone/glasses later | 2026-10-23 | Active (user direction) |
+| D-17 | Spoken replies in the user's language: phrase table + installed voice, else English | 2026-10-23 | Active; Hindi table reviewed and Hindi voice working 2026-10-27 |
+| D-18 | Paper scope: evaluate Hindi and English only; Sarvam baseline only within its free credit | 2026-10-25 | Active (user direction) |
+| D-19 | EXP-08 evaluated in a quiet room only; noisy condition dropped | 2026-10-27 | Active (user direction) |
+| D-20 | Arrival area per target (watch 3 %, keys 9 %, else 22 %); arrival spoken only when confirmed | 2026-10-27 | Active (heuristic, one probe per object) |
 
 ---
 
 ### D-01 · Sarvam Saaras v3 for speech recognition
+- **Superseded by D-15 (2026-10-23):** the app is offline by default. Sarvam remains an opt-in backend and the cloud reference in EXP-08.
 - **Decision:** the app uses Sarvam Saaras v3 (`mode="translate"`, automatic language detection), so any supported language arrives as English text. faster-whisper stays for evaluation and as a possible offline fallback.
 - **Why:** it had the lowest WER in the pilot (2.0 % vs 4.5 % for Whisper Tiny and 6.5 % for Whisper Base), and speech-to-English translation happens in one call.
 - **Trade-off:** it needs internet, and its latency includes the network (0.56 s mean vs 0.44 s for Whisper Tiny).
@@ -92,3 +99,56 @@ One entry per decision: what was decided, why, the evidence, and the date. If a 
 - **Decision (2026-10-23, approved by the user):** when the user asks for "keys" or "key", the open-vocabulary model gets the prompt `bunch of keys`; speech still uses the user's word ("Keys, left."). Other targets keep their own word as the prompt ("watch" is already the best watch prompt). Implemented as `OPEN_VOCAB_PROMPTS` in `module2_vision/config/config.py` (env format `target=prompt1|prompt2;…`), applied in `detection/detector_factory.py`; mapped words the model can't search for fall back to the target word.
 - **Evidence:** `experiments/2026-10-23_prompt_wording/` (EXP-07): keys on a table 99.7 % found with `bunch of keys` vs 0 % with `key`, `keys`, `keychain`, `car key`; 0 % false sightings in a "no keys" scene.
 - **Open risks:** one recording per scene; keys held in the hand still 0 %; false positives with a person in view untested for this prompt.
+
+### D-15 · On-device speech recognition
+- **Decision (2026-10-23):** the app recognises speech on the laptop with faster-whisper (`task="translate"`: any language → English text, so the parser of D-02 is unchanged). This is `ASR_BACKEND=whisper`, the default, in `module1_audio/speech/whisper_stt.py`, chosen through `speech/transcriber_factory.py`. Settings live in `speech/asr_config.py`:
+  - `ASR_MODEL_SIZE` (default `large-v3`, provisional);
+  - `ASR_LANGUAGE` (the user's language; default `auto`);
+  - device and compute type (auto: GPU `int8_float16`, CPU `int8`).
+- Sarvam (`ASR_BACKEND=sarvam`) needs `OFFLINE_MODE=false` and stays the cloud reference for EXP-08.
+- **Why:** offline operation is the project's USP (D-16). Whisper is the only offline candidate that translates to English in one step, it is MIT-licensed, and it was already a dependency (EXP-02).
+- **Rejected:**
+  - `large-v3-turbo`: not trained for translation.
+  - SeamlessM4T / MMS: CC-BY-NC, which blocks the final product.
+- **Still open:** the model size and whether Indic languages are routed to AI4Bharat IndicConformer + IndicTrans2 (MIT). EXP-08 decides, by object accuracy per language with ≤ 2 s latency (`experiments/2026-10-23_multilingual_offline_asr/`).
+- **Evidence so far:** English smoke test only, 10/10 objects with tiny/base on the GPU at ~0.1 s (EXP-08 smoke). No multilingual evidence yet.
+- **Update 2026-10-27 (EXP-08 run 1, 120 Hindi + English clips, 3 speakers):** large-v3 90 % object accuracy in Hindi and 90.0–91.7 % in English; tiny/base only 33 %/55 % in Hindi. With the language given, large-v3 has a median of 0.55 s and a maximum of 1.73 s, which is within the 2 s rule. Provisional choice: large-v3 (already the `ASR_MODEL_SIZE` default) with `ASR_LANGUAGE` set by the user. Still open: `small`/`medium`, the Sarvam reference, and noisy conditions.
+- **Decided 2026-10-27 (same day, all sizes + Sarvam):** by the EXP-08 rule, **large-v3 with the language given** for Hindi and English. English: 90.0 % within 2 s (auto 91.7 % has a 2.22 s clip). Hindi: tied with medium at 90.0 %. Fallback for smaller devices: medium+hint (1.5 GB; 90.0 % HI, 86.7 % EN, 0.35 s). The cost of going offline: 5–6 points below Sarvam (95.8 %). The AI4Bharat route is not pursued for now (medium and large-v3 both reach 90 % in Hindi; it would need an install). No noisy re-check (D-19).
+
+### D-16 · Offline by default; laptop prototype for the paper
+- **Decision (2026-10-23, user direction):**
+  - Every session runs without internet. `OFFLINE_MODE` (default on) sets `YOLO_OFFLINE`, `HF_HUB_OFFLINE` and `TRANSFORMERS_OFFLINE` before model libraries load, which stops Ultralytics' online check, telemetry and auto-update.
+  - Missing model files fail fast (`module2_vision/tools/offline_check.py` is the pre-flight).
+  - The paper uses the laptop prototype. The phone/glasses product is future work, supported by CPU-only measurements (EXP-10) rather than a rewrite.
+- **Why:** cloud assistants (e.g. Gemini) need a connection. Offline also means privacy (no audio or video leaves the device), no network latency, and working without connectivity.
+- **Caveat for the paper:** on-device object detection alone is not new. Google Lookout describes on-device vision, and several apps advertise offline detection. The claim must be the combination: offline multilingual spoken request + open-vocabulary target + continuous guidance to arrival, measured against a cloud baseline. Check related work before writing "first".
+- **Not yet verified:** a full session with the network physically off (EXP-09).
+
+### D-17 · Replies in the user's language
+- **Decision (2026-10-23):**
+  - Every spoken sentence lives in one table, `module2_vision/guidance/phrases.py`, with per-language object names. English is unchanged; Hindi is a draft.
+  - Replies use the recogniser's language when that language has a table **and** an installed voice (Windows SAPI, `audio_feedback/tts_speaker.py` `voice_languages()`); otherwise they fall back to English. `REPLY_LANGUAGE` (`auto` or a code) overrides this.
+  - No machine translation at runtime.
+- **Why:** the guidance vocabulary is small and fixed (~15 templates), so reviewed tables are more reliable than MT and cost nothing at runtime.
+- **Open:**
+  - The Hindi table must be checked by a native speaker. It is worded so no verb agrees with the object's gender.
+  - **Update 2026-10-27:** reviewed by a native Hindi speaker (the user); accepted unchanged. The Windows Hindi voices (Hemant, Kalpana) were installed the same day. They are OneCore-only voices, so the assistant also reads the OneCore voice list (`tts_speaker.py`); Hindi replies now use Hemant.
+  - This machine has English voices only, so Hindi replies need a Windows Hindi voice (install approval).
+  - Other languages need their own table and voice; until then they get English replies (a stated limitation).
+
+### D-18 · Paper scope: Hindi and English; Sarvam within free credit
+- **Decision (2026-10-25, user direction):**
+  - The paper is the priority; the full product can follow later. Only work the paper's claims need is done now.
+  - EXP-08 records and evaluates **Hindi and English only** (code-mixed Hinglish counts as Hindi, as spoken naturally). The user and the available speakers don't speak other languages. This replaces the EXP-08 target of "≥ 4 languages".
+  - The Sarvam cloud baseline runs only while the account's free credit covers it; the project has no budget for paid calls.
+- **Consequence for the paper:** the system supports any language Whisper/Sarvam accept, but only Hindi and English are measured. Other Indian languages are a stated limitation and future work; don't claim accuracy for them.
+
+### D-19 · EXP-08: quiet room only
+- **Decision (2026-10-27, user direction):** the noisy-condition recordings planned in the EXP-08 protocol are dropped. Run 1 (120 quiet clips, 3 speakers) is the final EXP-08 data set; D-15 stands on it.
+- **Why:** the paper is the priority (D-18), and the quiet run already answers the model choice.
+- **Consequence for the paper:** recognition accuracy is reported for a quiet room only. Robustness to background noise (TV, traffic, other speakers) is a stated limitation; don't claim it.
+
+### D-20 · Arrival area per target; arrival announced only when confirmed
+- **Decision (2026-10-27):** amends D-07. `ARRIVAL_AREA_BY_TARGET` (config, env-overridable) sets the "reached" box area per target: watch 0.03, keys/key 0.09; every other target keeps 0.22. `SpatialLocator.for_target()` applies it in `assistant.py`, `main.py` and the controller's default. The arrival message is spoken only when the 5-frame confirmation completes.
+- **Why:** in EXP-09 run 1 no watch/keys session could end. The worn watch's box peaked at 4.1 % and the keys' at 11.2 % before the open-vocabulary model lost them, and the arrival message had been spoken on a single unconfirmed frame (`experiments/2026-10-27_offline_end_to_end/`).
+- **Limits:** the values come from one 25 s probe per object, one tester, the laptop webcam. Other small open-vocabulary objects (glasses, wallet, medicine, charger) keep 22 % and may show the same problem; they haven't been probed. As with D-07, area is not distance.

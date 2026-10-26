@@ -76,6 +76,11 @@ class TestNavigationControllerStates:
         detections_arrived = [
             {"class_name": "bottle", "confidence": 0.95, "bbox": [200, 200, 800, 800]}
         ]
+        # Arrival is only announced once confirmed (arrival_confirm_frames).
+        for _ in range(controller.arrival_confirm_frames - 1):
+            early = controller.process_frame(detections_arrived, 1000, 1000)
+            assert early.state == NavigationState.GUIDING
+            assert "in front of you" not in early.spoken_instruction.lower()
         step = controller.process_frame(detections_arrived, 1000, 1000)
         assert step.state == NavigationState.ARRIVED
         assert step.is_arrived is True
@@ -216,3 +221,58 @@ def test_bottle_held_by_person_gets_guidance_not_obstacle_warning(monkeypatch):
     clock[0] += 5.0
     step = nc.process_frame([person], 640, 480)
     assert step.state == NavigationState.OBSTRUCTED
+
+
+# ── EXP-09 (2026-10-27): small open-vocabulary targets ───────────────────
+
+def _small_target_controller(target):
+    from guidance.obstacle_detector import ObstacleDetector as _OD
+    return NavigationController(
+        target_name=target, matcher=TargetMatcher(supported_classes={0: target}),
+        obstacle_detector=_OD(enabled=False), speaker=_RecordingSpeaker(), arrival_confirm_frames=3,
+    )
+
+
+class _RecordingSpeaker:
+    def __init__(self):
+        self.said = []
+
+    def speak(self, text, priority=None, force=False):
+        self.said.append(text)
+        return True
+
+    def clear(self):
+        pass
+
+
+def test_watch_arrives_at_its_own_smaller_area():
+    # A worn watch peaked at ~4 % of the frame in the EXP-09 probe; 22 % is unreachable.
+    nav = _small_target_controller("watch")
+    watch = {"class_name": "watch", "class_id": 0, "confidence": 0.8, "bbox": [440, 300, 640, 480]}  # 3.6 %
+    for _ in range(3):
+        nav.process_frame([watch], 1000, 1000)
+    assert nav.finish_reason == "arrived"
+
+
+def test_bottle_keeps_default_arrival_area():
+    nav = _small_target_controller("bottle")
+    bottle = {"class_name": "bottle", "class_id": 0, "confidence": 0.8, "bbox": [440, 300, 640, 480]}
+    for _ in range(3):
+        nav.process_frame([bottle], 1000, 1000)
+    assert nav.finish_reason is None
+
+
+def test_single_reached_frame_is_not_announced():
+    # One stray large box used to say "directly in front" without ending the session.
+    nav = _small_target_controller("bottle")
+    small = {"class_name": "bottle", "class_id": 0, "confidence": 0.8, "bbox": [450, 450, 550, 550]}
+    big = {"class_name": "bottle", "class_id": 0, "confidence": 0.8, "bbox": [100, 100, 900, 900]}
+    for dets in ([small], [big], [small], [small]):
+        nav.process_frame(dets, 1000, 1000)
+    assert nav.finish_reason is None
+    assert not any("in front of you" in t.lower() for t in nav.speaker.said)
+
+
+def test_arrival_area_map_parses_env_format():
+    from config.config import _parse_float_map
+    assert _parse_float_map("watch=0.03; Keys=0.09;bad;x=oops") == {"watch": 0.03, "keys": 0.09}

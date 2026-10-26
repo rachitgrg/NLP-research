@@ -106,7 +106,8 @@ class TestFullAssistiveWorkflow:
         frame5_detections = [
             {"class_name": "bottle", "confidence": 0.95, "bbox": [200, 200, 800, 800]}
         ]
-        step5 = controller.process_frame(frame5_detections, frame_w, frame_h)
+        for _ in range(controller.arrival_confirm_frames):
+            step5 = controller.process_frame(frame5_detections, frame_w, frame_h)
         assert step5.state == NavigationState.ARRIVED
         assert step5.is_arrived is True
         assert "directly in front of you" in step5.spoken_instruction.lower()

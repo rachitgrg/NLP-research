@@ -92,6 +92,7 @@ def _try_import_module1() -> None:
 
     try:
         # Load the project-root .env so SARVAM_API_KEY is available
+        # (only used when ASR_BACKEND=sarvam)
         from pathlib import Path as _P
         try:
             from dotenv import load_dotenv  # type: ignore
@@ -135,7 +136,26 @@ def _try_import_module1() -> None:
 _try_import_module1()
 
 
+# One HearingPipeline per process: the speech model (several GB for
+# Whisper large-v3) is loaded on the first voice request, not on every one.
+_pipeline_instance: Any = None
+
+
+def _get_pipeline() -> Any:
+    global _pipeline_instance
+    if _HearingPipeline is None:
+        raise RuntimeError("Module 1 (HearingPipeline) is not available.")
+    if not isinstance(_pipeline_instance, _HearingPipeline):
+        _pipeline_instance = _HearingPipeline()
+    return _pipeline_instance
+
+
 # ── Public API ─────────────────────────────────────────────────
+
+def load_voice_pipeline() -> None:
+    """Load the speech model now, so the first request doesn't wait for it."""
+    _get_pipeline()
+
 
 def extract_target_from_module1(m1_result: dict[str, Any]) -> dict[str, Any]:
     """
@@ -225,12 +245,10 @@ def run_voice_pipeline(audio_path: str) -> dict[str, Any] | None:
     if not MODULE1_AVAILABLE or _HearingPipeline is None:
         raise RuntimeError(
             "Module 1 (HearingPipeline) is not available. "
-            "Make sure Module 1 dependencies are installed:\n"
-            "  pip install spacy sarvam-ai python-dotenv\n"
-            "  python -m spacy download en_core_web_sm\n"
+            "Make sure Module 1 dependencies are installed (root requirements.txt:\n"
+            "faster-whisper, spaCy + en_core_web_sm; sarvamai only for ASR_BACKEND=sarvam).\n"
             "Or use --target <object> to skip voice input."
         )
 
-    pipeline = _HearingPipeline()
-    m1_result = pipeline.run(audio_path)
+    m1_result = _get_pipeline().run(audio_path)
     return extract_target_from_module1(m1_result)

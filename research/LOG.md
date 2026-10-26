@@ -4,6 +4,85 @@ Newest first. Each entry: what happened, why, links. Entries before 2026-10-21 w
 
 ---
 
+## 2026-10-27 — C19 passed (network off confirmed); repo prepared for paper writing
+- **Network off:** the user confirmed Airplane mode and Wi-Fi were off for all EXP-09 sessions, and `Test-NetConnection` printed `False`. `observations.csv` updated; **C19 is now citable** (functional, one tester, one desk). The "don't claim offline operation" warning was replaced by a narrower one (not on phones; GPU needed, C22).
+- **Paper preparation:** `paper_notes/outline.md` rewritten for the current system (offline + multilingual + open vocabulary; it still described Sarvam and only EXP-01–05). `paper_notes/todo.md` and `IMPLEMENTATION_ROADMAP.md` updated (R4 and R9 done; watch-on-table plan added as R10, proposed). New mentor summary: `paper_notes/MENTOR_SUMMARY_2026-10-27.md`.
+- **Links:** `experiments/2026-10-27_offline_end_to_end/`, `paper_notes/claims_and_limitations.md` C19.
+
+## 2026-10-27 — EXP-09 re-run: watch and keys arrive after the fix
+- **What:** the user re-ran E4/E5/H4/H5 (worn watch, keys on the desk; English and Hindi) with commit `5b1c847`. All 4 ended `arrived` (10.3–24.3 s). Recognition 1.17–1.33 s after the request; the 7.4–8.1 s model load now happens before the prompt.
+- **Overall:** final configuration 10/10 sessions arrived, 14/14 targets heard correctly. `observations.csv` filled in from the logs and the tester's verbal summary (exact wording not recorded).
+- **Pending:** the tester's confirmation that the network was physically off (C19).
+- **Next question raised by the user:** a watch lying on a table is detected far worse than a worn one (EXP-06: 0 % at 0.25), yet a table is where a blind user would look for it. Plan only, nothing changed yet.
+- **Links:** `experiments/2026-10-27_offline_end_to_end/` (`session_latency_2026-10-27_022725.csv`, `observations.csv`).
+
+## 2026-10-27 — EXP-09 run 1: offline sessions; two bugs fixed (arrival for small objects, speech-model load)
+- **Run:** the user ran the 10 scenario sessions (5 objects × English/Hindi), `OFFLINE_MODE` on, Whisper large-v3 on CUDA. 10/10 targets heard correctly; 6/6 closed-set sessions ended `arrived` (5.8–31.3 s). The 4 watch/keys sessions had to be stopped with Q, although "directly in front of you" was spoken.
+- **Bug 1 (affects results):** diagnosed with a per-frame probe. The watch box peaks at 4.1 % and the keys box at 11.2 % of the frame, never 22 %, and the arrival message was spoken on one unconfirmed frame. Fixed: the arrival message is spoken only once confirmed, and the arrival area is set per target (watch 3 %, keys 9 %); decision D-20 (amends D-07).
+- **Bug 2:** the logged ASR stage (8–10 s) included the ~8 s Whisper load after the user spoke. Fixed: the model is loaded before the prompt; new `asr_load_s` column; a log file with the old columns gets a new file instead.
+- **Tests:** module2 214 → 220 (6 new, 2 updated for the confirmed-arrival rule), module1 126; all pass.
+- **Pending:** re-run the watch/keys sessions with the fix; `observations.csv`; network-off confirmation (C19).
+- **Links:** `experiments/2026-10-27_offline_end_to_end/` (`session_latency_2026-10-27.csv`, `arrival_probe/`), `decisions.md` D-20.
+
+## 2026-10-27 — EXP-09 scenario sheet prepared
+- **What:** protocol for the offline end-to-end sessions (claim C19): pre-flight online and offline, Airplane mode with a connectivity check, 5 objects (bottle, phone, cup = closed set; worn watch, keys on the desk = open vocabulary) × English and Hindi, one attempt each, `--no-obstacles` at the desk. Timings are logged automatically; `observations.csv` is the manual record.
+- **Status:** not run; needs the user at the laptop.
+- **Links:** `experiments/2026-10-27_offline_end_to_end/`.
+
+## 2026-10-27 — Noisy condition dropped (D-19); Hindi phrases reviewed; EXP-10 Whisper on CPU
+- **Scope (D-19, user direction):** EXP-08 is quiet-room only; the noisy recordings are dropped. Limitation 11 added.
+- **Hindi replies (D-17):** the user (native Hindi speaker) reviewed `module2_vision/guidance/phrases.py` and accepted it unchanged; the draft markers are removed (214 vision tests pass). The Windows Hindi voice download stalled at 0 % in Settings (connection not metered; Windows Update and BITS running). It installed from an administrator PowerShell instead: `Add-WindowsCapability -Online -Name "Language.TextToSpeech~~~hi-IN~0.0.1.0"`.
+- **Bug fix (TTS):** the installed Hindi voices (Hemant, Kalpana) are OneCore-only, and `SpVoice.GetVoices()` lists only SAPI5 desktop voices, so the assistant reported `{en}` and would have spoken Hindi replies in English. `audio_feedback/tts_speaker.py` now also reads the OneCore voice list. Desktop voices come first, so English keeps David Desktop; Hindi uses Hemant. `offline_check.py` shows reply voices en + hi. Tests: module1 121 → 126 (5 new), module2 214, all pass. No measured result affected (EXP-09 hasn't run).
+- **EXP-10 (CPU only, 120 EXP-08 clips, language given):** small 1.17 s median (EN 88.3 % / HI 81.7 %), medium 3.59 s (88.3 % / 90.0 %), large-v3 7.48 s (95.0 % / 90.0 %). Only small is near real time without the GPU (7–14× slower than the GPU). CPU `int8` vs GPU `int8_float16` shifts English by up to 3 clips. Claim C22 added.
+- **Links:** `decisions.md` D-17, D-19; `experiments/2026-10-23_edge_feasibility/` (`whisper_cpu_2026-10-27/`); `paper_notes/claims_and_limitations.md` C22, limitation 11.
+
+## 2026-10-27 — EXP-08 run 1 completed: Whisper small/medium and the Sarvam baseline; D-15 model size decided
+- **What:** with user approval, downloaded Whisper `small` (464 MB) and `medium` (1.5 GB) and ran them offline, with and without the language hint, on the same 120 clips. Ran the Sarvam cloud baseline on the free credit (120 calls).
+- **Results (object accuracy EN / HI, median latency):** small 88.3 % / 81.7 %, 0.27 s (hint 0.17 s); medium 86.7 % / 90.0 %, 0.56 s (hint 0.35 s); Sarvam 95.0 % / 96.7 %, 0.47 s (cloud, includes network). Paired against Sarvam, large-v3+hint: 7 clips Sarvam-only, 0 Whisper-only (exact McNemar p = 0.016, 0.10 after Bonferroni ×6).
+- **Decision:** D-15 model size decided: large-v3 + language hint (best within 2 s in English; ties with medium in Hindi). medium+hint is the smaller-device fallback. Claims C20 updated and C21 (gap to cloud) added.
+- **Caveat:** the Sarvam run's JSON says `offline_mode: true`, which is only the environment flag; that backend always uses the network.
+- **Pending:** noisy-condition recordings (user).
+- **Links:** `experiments/2026-10-23_multilingual_offline_asr/` (run 1, `run_2026-10-27/`), `decisions.md` D-15, `paper_notes/claims_and_limitations.md` C20–C21.
+
+## 2026-10-27 — EXP-08 run 1: offline Hindi + English speech recognition (3 speakers)
+- **What:** the user recorded 120 clips: speakers S01–S03, the 20 prompts in English and in Hindi, quiet room, laptop microphone (`module1_audio/evaluation/multilingual/recordings.csv`). Ran `evaluation/multilingual_benchmark.py` offline (`OFFLINE_MODE=true`, RTX 3050) with Whisper tiny, base and large-v3, each with auto language detection and with the language given (`+hint`).
+- **Results (object accuracy EN / HI, median latency):** tiny 76.7 % / 33.3 %, 0.10 s; base 83.3 % / 55.0 %, 0.15 s; large-v3 91.7 % / 90.0 %, 0.92 s (max 2.22 s); large-v3+hint 90.0 % / 90.0 %, 0.55 s (max 1.73 s). The hint doesn't change accuracy, but it makes large-v3 ~40 % faster. All 11 large-v3 errors are misheard object words (cup, bowl, Hindi "chhata" → "Tata"/"data"), not parser failures.
+- **Decision:** D-15 provisionally large-v3 + language hint (already the default model size). Not final until `small`/`medium` and Sarvam have been compared. Claim C20 added (indicative).
+- **Tooling issue:** running all six backends in one process crashed silently during large-v3 (no files written). Run alone it completes, so each backend now runs in its own process. Likely a CTranslate2 model-swap crash (not verified). No results affected.
+- **Pending:** Whisper `small`/`medium` (download, needs approval), Sarvam baseline (free credit, needs approval), noisy-condition clips.
+- **Links:** `experiments/2026-10-23_multilingual_offline_asr/` (run 1 and `run_2026-10-27/`), `decisions.md` D-15, `paper_notes/claims_and_limitations.md` C20.
+
+## 2026-10-25 — Scope for the paper: Hindi and English; Sarvam within free credit (D-18)
+- **Why:** the user has made the paper the priority over finishing the product. The only languages the user and available speakers can record are Hindi and English, and the project has no budget for paid API calls.
+- **What:** EXP-08 is limited to Hindi and English (≥ 2 speakers each); other languages become a stated limitation (claims file, limitation 10). The Sarvam baseline runs only within the account's free credit. No code changed.
+- **Environment:** downloaded Whisper large-v3 (`Systran/faster-whisper-large-v3`, snapshot `edaa852e`, 3,091 MB, HF cache) with user approval; `tools/offline_check.py` now reports "Ready to run offline". Offline check (`OFFLINE_MODE=true`, RTX 3050, int8_float16): load 11.5 s; EXP-02 clips 01 and 08 transcribed correctly in 1.55 s (first call) and 0.94 s. A check only, not a result.
+- **Recorder fix:** an EXP-08 recording froze in `sd.wait()` with Bluetooth earbuds as the default input; clips 1–7 were saved, clip 8 wasn't. `evaluation/record_samples.py` now times out after duration + 3 s and asks for a retry (2 tests; 123 voice tests pass). EXP-08 clips are recorded on the laptop's built-in microphone only. No results affected.
+- **Links:** `decisions.md` D-18, `experiments/2026-10-23_multilingual_offline_asr/README.md`, `paper_notes/claims_and_limitations.md` C20.
+
+## 2026-10-23 — R9 started: fully offline, multilingual assistant (branch `feature/offline-multilingual`)
+- **Why:** new project direction (user, 2026-10-23). Offline, on-device operation is the USP compared with cloud assistants such as Gemini. The paper uses the laptop prototype; a phone/glasses product comes later without a rewrite now. The system must stay multilingual. Work happens on a branch so `main` stays demo-ready.
+- **What (code, commits `1d7bb32`, `154d4af`, `8bccb95`, `b1969dc`):**
+  - `OFFLINE_MODE` (default on): sets the Ultralytics / Hugging Face offline flags before the libraries load, and makes the open-vocabulary loader fail fast on missing files. `tools/offline_check.py` is the pre-flight (D-16).
+  - On-device speech recognition with faster-whisper (`speech/whisper_stt.py`, `transcriber_factory.py`, `asr_config.py`) replaces Sarvam as the default; Sarvam is opt-in (D-15, supersedes D-01). The voice pipeline is now loaded once per process.
+  - EXP-08 tooling: prompt sheet, recorder, multilingual benchmark measuring object accuracy.
+  - Spoken replies in the user's language through `guidance/phrases.py` and voice selection by language (D-17).
+  - A per-stage latency log for sessions (`navigation/session_log.py`, EXP-09).
+- **Bugs found (affect re-running EXP-02, not its frozen results):**
+  1. faster-whisper 1.2.1 + PyAV 19 in `.venv`: every Whisper transcription failed (`metadata_errors` `TypeError`). Audio is now read with soundfile.
+  2. CTranslate2 on Windows didn't find cuBLAS, so Whisper ran on CPU only. `torch/lib` is now registered.
+- **Results:**
+  - EXP-08 English smoke test (10 EXP-02 clips, GPU): tiny/base 10/10 objects, median 0.08–0.13 s; auto language-ID 9/10, 10/10 with the language given.
+  - EXP-10 (partial, CPU only): `best.pt` 22.6 ms at 640 px, YOLOE-26s 73.6 ms (29.2 ms at 320 px, with lower confidences); Whisper tiny/base 0.20/0.37 s.
+  - No multilingual result yet.
+- **Tests:** module1 96 → 121, module2 194 → 214, all pass.
+- **Pending (need the user):**
+  - Download Whisper `small`/`medium`/`large-v3`.
+  - Record the multilingual test set.
+  - Approve the Sarvam baseline calls.
+  - Native-speaker review of the Hindi phrases, and a Windows Hindi voice.
+  - EXP-09: run with the network off.
+- **Links:** `experiments/2026-10-23_multilingual_offline_asr/`, `experiments/2026-10-23_edge_feasibility/`, `decisions.md` D-15–D-17, `paper_notes/IMPLEMENTATION_ROADMAP.md` R9.
+
 ## 2026-10-23 — Prompt wording for watch and keys (EXP-07)
 - **Why:** in the live app the watch was found when worn, ~50 % on a table and almost never in the hand; keys were never found (EXP-06). Hypothesis tested: the prompt word is the cause.
 - **What:** `OpenVocabDetector.set_target(..., prompts=[...])` and `openvocab_trials.py --prompts` (compare several words, or word combinations, on the same recorded frames). 7 recordings × 6 prompt sets with text YOLOE-26s.

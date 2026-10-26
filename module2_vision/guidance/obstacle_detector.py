@@ -21,6 +21,7 @@ from config.config import (
     OBSTACLE_HOLDER_CLASSES,
     OBSTACLE_MIN_AREA_RATIO,
 )
+from guidance.phrases import phrase
 
 
 @dataclass(frozen=True)
@@ -81,7 +82,9 @@ class ObstacleDetector:
         min_area_ratio: float = OBSTACLE_MIN_AREA_RATIO,
         obstacle_classes: tuple[str, ...] = OBSTACLE_CLASSES,
         holder_classes: tuple[str, ...] = OBSTACLE_HOLDER_CLASSES,
+        language: str = "en",
     ) -> None:
+        self.language = language  # warnings via guidance/phrases.py
         self.holder_classes = set(c.lower() for c in holder_classes)
         self.enabled = enabled
         self.corridor_left = corridor_left
@@ -203,15 +206,15 @@ class ObstacleDetector:
             if box_span > 0.65 or area_ratio > 0.35:
                 # Spans most of the walking path or very close
                 detour = "stop"
-                warning = f"Stop. {class_name.capitalize()} ahead."
+                warning = phrase("obstacle_ahead", self.language, obs=class_name)
             elif norm_cx <= 0.50:
                 # Obstacle is on the left side of path -> veer right
                 detour = "right"
-                warning = f"{class_name.capitalize()} on left. Step slightly right."
+                warning = phrase("obstacle_left", self.language, obs=class_name)
             else:
                 # Obstacle is on the right side of path -> veer left
                 detour = "left"
-                warning = f"{class_name.capitalize()} on right. Step slightly left."
+                warning = phrase("obstacle_right", self.language, obs=class_name)
 
             hazards.append(
                 ObstacleHazard(
